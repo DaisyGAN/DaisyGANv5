@@ -5,7 +5,7 @@
 --------------------------------------------------
     DaisyGANv5
 
-    Ttesting on a dataset of 995 quotes.
+    Testing on a dataset of 995 quotes.
 */
 
 #pragma GCC diagnostic ignored "-Wunused-result"
