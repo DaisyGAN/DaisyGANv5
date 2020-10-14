@@ -42,7 +42,7 @@
 #define TRAINING_LOOPS 1
 const float _lrate     = 0.03;
 const float _ldropout   = 0.2;
-const uint  _loptimiser = 3;
+uint        _loptimiser = 4;
 const float _lmomentum = 0.1;
 const float _lrmsalpha  = 0.2; //0.99
 const float _lgain     = 1.0;
@@ -56,7 +56,7 @@ const float _lgain     = 1.0;
 // #define TRAINING_LOOPS 1
 // const float _lrate     = 0.03;
 // const float _ldropout   = 0.5;
-// const uint  _loptimiser = 1;
+// uint        _loptimiser = 1;
 // const float _lmomentum = 0.1;
 // const float _lrmsalpha  = 0.2;
 // const float _lgain     = 1.0;
@@ -724,7 +724,7 @@ float rmseDiscriminator()
     return sqrt(squaremean);
 }
 
-void trainDataset(const char* file)
+void loadDataset(const char* file)
 {
     // read training data [every input is truncated to 256 characters]
     FILE* f = fopen(file, "r");
@@ -754,8 +754,11 @@ void trainDataset(const char* file)
         fclose(f);
     }
 
-    printf("Training Data Loaded\n");
+    printf("Training Data Loaded.\n");
+}
 
+void trainDataset()
+{
     // train discriminator
     for(int j = 0; j < TRAINING_LOOPS; j++)
     {
@@ -921,7 +924,8 @@ int main(int argc, char *argv[])
         {
             _log = 1;
             remove("weights.dat");
-            trainDataset(argv[2]);
+            loadDataset(argv[2]);
+            trainDataset();
             exit(0);
         }
 
@@ -940,7 +944,24 @@ int main(int argc, char *argv[])
         {
             _log = 1;
             remove("weights.dat");
-            trainDataset("tgmsg.txt");
+            loadDataset("tgmsg.txt");
+            trainDataset();
+            exit(0);
+        }
+
+        if(strcmp(argv[1], "best") == 0)
+        {
+            remove("weights.dat");
+            loadDataset("tgmsg.txt");
+
+            for(uint i = 0; i <= 4; i++)
+            {
+                _loptimiser = i;
+                printf("\nOptimiser: %u\n", _loptimiser);
+
+                for(uint j = 0; j <= 6; j++)
+                    trainDataset();
+            }
             exit(0);
         }
 
@@ -957,7 +978,7 @@ int main(int argc, char *argv[])
 
         if(strcmp(argv[1], "gen") == 0)
         {
-            rndGen("out.txt", 0.5);
+            rndGen("out.txt", 0.06356);
             exit(0);
         }
 
@@ -985,7 +1006,8 @@ int main(int argc, char *argv[])
             timestamp();
             const time_t st = time(0);
             loadTable("tgdict.txt");
-            trainDataset("tgmsg.txt");
+            loadDataset("tgmsg.txt");
+            trainDataset();
             clearFile("tgmsg.txt");
             rndGen("out.txt", 0.1);
             printf("Just generated a new dataset.\n");
