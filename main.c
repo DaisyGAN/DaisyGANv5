@@ -41,9 +41,10 @@
 #define HIDDEN_SIZE 256
 #define TRAINING_LOOPS 1
 const float _lrate     = 0.03;
-const float _dropout   = 0.2;
-const uint  _optimiser = 1;
+const float _ldropout   = 0.2;
+const uint  _loptimiser = 3;
 const float _lmomentum = 0.1;
+const float _lrmsalpha  = 0.2; //0.99
 const float _lgain     = 1.0;
 
 // this is not the vegetarian option
@@ -54,9 +55,10 @@ const float _lgain     = 1.0;
 // #define HIDDEN_SIZE 1024
 // #define TRAINING_LOOPS 1
 // const float _lrate     = 0.03;
-// const float _dropout   = 0.5;
-// const uint  _optimiser = 1;
+// const float _ldropout   = 0.5;
+// const uint  _loptimiser = 1;
 // const float _lmomentum = 0.1;
+// const float _lrmsalpha  = 0.2;
 // const float _lgain     = 1.0;
 
 //
@@ -535,10 +537,41 @@ float Momentum(const float input, const float error, float* momentum)
     return err;
 }
 
+float Nesterov(const float input, const float error, float* momentum)
+{
+    // const float ret = _lrate * ( input * (input + _lmomentum * momentum[0]) ) + (_lmomentum * momentum[0]);
+    // momentum[0] = input;
+    // return ret;
+
+    const float ret = _lrate * ( error * (input + _lmomentum * momentum[0]) ) + (_lmomentum * momentum[0]);
+    momentum[0] = input;
+    return ret;
+}
+
+float ADAGrad(const float input, const float error, float* momentum)
+{
+    const float err = error * input;
+    momentum[0] += err * err;
+    return (_lrate / sqrt(momentum[0] + 1e-8)) * err; // 0.00000001
+}
+
+float RMSProp(const float input, const float error, float* momentum)
+{
+    const float err = error * input;
+    momentum[0] = _lrmsalpha * momentum[0] + (1 - _lrmsalpha) * (err * err);
+    return (_lrate / sqrt(momentum[0] + 1e-8)) * err; // 0.00000001
+}
+
 float Optional(const float input, const float error, float* momentum)
 {
-    if(_optimiser == 1)
+    if(_loptimiser == 1)
         return Momentum(input, error, momentum);
+    else if(_loptimiser == 2)
+        return ADAGrad(input, error, momentum);
+    else if(_loptimiser == 3)
+        return RMSProp(input, error, momentum);
+    else if(_loptimiser == 4)
+        return Nesterov(input, error, momentum);
     
     return SGD(input, error);
 }
@@ -636,7 +669,7 @@ float doDiscriminator(const float* input, const float eo)
     // layer 1
     for(int i = 0; i < FIRSTLAYER_SIZE; i++)
     {
-        if(_dropout != 0 && uRandWeight(0.01, 1) <= _dropout)
+        if(_ldropout != 0 && uRandWeight(0.01, 1) <= _ldropout)
             continue;
 
         for(int j = 0; j < d1[i].weights; j++)
@@ -648,7 +681,7 @@ float doDiscriminator(const float* input, const float eo)
     // layer 2
     for(int i = 0; i < HIDDEN_SIZE; i++)
     {
-        if(_dropout != 0 && uRandWeight(0.01, 1) <= _dropout)
+        if(_ldropout != 0 && uRandWeight(0.01, 1) <= _ldropout)
             continue;
 
         for(int j = 0; j < d2[i].weights; j++)
@@ -660,7 +693,7 @@ float doDiscriminator(const float* input, const float eo)
     // layer 3
     for(int i = 0; i < HIDDEN_SIZE; i++)
     {
-        if(_dropout != 0 && uRandWeight(0.01, 1) <= _dropout)
+        if(_ldropout != 0 && uRandWeight(0.01, 1) <= _ldropout)
             continue;
             
         for(int j = 0; j < d3[i].weights; j++)
