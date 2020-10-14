@@ -5,7 +5,7 @@
 --------------------------------------------------
     DaisyGANv5
 
-    Testing on a dataset of 995 quotes.
+    Technically a generative adversarial network anymore.
 */
 
 #pragma GCC diagnostic ignored "-Wunused-result"
