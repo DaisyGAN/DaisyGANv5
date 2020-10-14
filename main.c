@@ -815,7 +815,8 @@ float trainDataset()
         }
 
         rmse = rmseDiscriminator();
-        printf("RMSE: %f\n", rmse);
+        if(_log == 1 || _log == 2)
+            printf("RMSE: %f\n", rmse);
     }
 
     // return rmse
