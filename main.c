@@ -913,13 +913,15 @@ void rndGen(const char* file, const float max)
                     if(nstr[i] != 0)
                     {
                         fprintf(f, "%s ", wtable[ind]);
-                        printf("%s ", wtable[ind]);
+                        if(_log == 1)
+                            printf("%s ", wtable[ind]);
                     }
                 }
                 
                 k++;
                 fprintf(f, "\n");
-                printf("\n");
+                if(_log == 1)
+                    printf("\n");
             }
         }
 
@@ -933,7 +935,8 @@ void findBest()
     for(uint i = 0; i <= 4; i++)
     {
         _loptimiser = i;
-        printf("\nOptimiser: %u\n", _loptimiser);
+        if(_log == 2)
+            printf("\nOptimiser: %u\n", _loptimiser);
 
         const time_t st = time(0);
         float mean = 0, low = 9999999, high = 0;
@@ -952,11 +955,14 @@ void findBest()
                 saveWeights();
             }
         }
-        printf("Lo  RMSE:   %f\n", low);
-        printf("Hi  RMSE:   %f\n", high);
-        printf("Avg RMSE:   ~ %f\n", mean / 6);
-        printf("RMSE Delta: %f\n", high-low);
-        printf("Time Taken: %.2f mins\n", ((double)(time(0)-st)) / 60.0);
+        if(_log == 2)
+        {
+            printf("Lo  RMSE:   %f\n", low);
+            printf("Hi  RMSE:   %f\n", high);
+            printf("Avg RMSE:   ~ %f\n", mean / 6);
+            printf("RMSE Delta: %f\n", high-low);
+            printf("Time Taken: %.2f mins\n", ((double)(time(0)-st)) / 60.0);
+        }
     }
     printf("\nThe dataset with an RMSE of %f was saved to weights.dat\n\n", lowest_low);
 }
@@ -989,6 +995,7 @@ int main(int argc, char *argv[])
 
         if(strcmp(argv[1], "gen") == 0)
         {
+            _log = 1;
             printf("Brute forcing with an error of: %s\n\n", argv[2]);
             loadWeights();
             rndGen("out.txt", atof(argv[2]));
@@ -1011,7 +1018,7 @@ int main(int argc, char *argv[])
         if(strcmp(argv[1], "best") == 0)
         {
             srand(time(0)); //kill any predictability in the random generator
-
+            _log = 2;
             remove("weights.dat");
             loadDataset("botmsg.txt");
             findBest();
@@ -1031,6 +1038,7 @@ int main(int argc, char *argv[])
 
         if(strcmp(argv[1], "gen") == 0)
         {
+            _log = 1;
             rndGen("out.txt", 0.5);
             exit(0);
         }
