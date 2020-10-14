@@ -34,28 +34,30 @@
 
 ///
 
-// #define FAST_MODE
-// #define DATA_SIZE 995
-// #define OUTPUT_QUOTES 333
-// #define FIRSTLAYER_SIZE 256
-// #define HIDDEN_SIZE 256
-// #define TRAINING_LOOPS 1
-// const float _lrate     = 0.03;
-// const float _dropout   = 0.2;
-// const float _lmomentum = 0.1;
-// const float _lgain     = 1.0;
-
-// this is not the vegetarian option
-#define FAST_MODE
+#define FAST_PREDICTABLE_MODE
 #define DATA_SIZE 995
 #define OUTPUT_QUOTES 333
-#define FIRSTLAYER_SIZE 512
-#define HIDDEN_SIZE 1024
+#define FIRSTLAYER_SIZE 256
+#define HIDDEN_SIZE 256
 #define TRAINING_LOOPS 1
 const float _lrate     = 0.03;
-const float _dropout   = 0.5;
+const float _dropout   = 0.2;
+const uint  _optimiser = 1;
 const float _lmomentum = 0.1;
 const float _lgain     = 1.0;
+
+// this is not the vegetarian option
+// //#define FAST_PREDICTABLE_MODE
+// #define DATA_SIZE 995
+// #define OUTPUT_QUOTES 333
+// #define FIRSTLAYER_SIZE 512
+// #define HIDDEN_SIZE 1024
+// #define TRAINING_LOOPS 1
+// const float _lrate     = 0.03;
+// const float _dropout   = 0.5;
+// const uint  _optimiser = 1;
+// const float _lmomentum = 0.1;
+// const float _lgain     = 1.0;
 
 //
 
@@ -258,12 +260,14 @@ void loadWeights()
 
 float qRandWeight(const float min, const float max)
 {
+#ifndef FAST_PREDICTABLE_MODE
     static time_t ls = 0;
     if(time(0) > ls)
     {
         srand(time(0));
         ls = time(0) + 33;
     }
+#endif
     float pr = 0;
     while(pr == 0) //never return 0
     {
@@ -278,7 +282,7 @@ float qRandWeight(const float min, const float max)
 
 float uRandWeight(const float min, const float max)
 {
-#ifdef FAST_MODE
+#ifdef FAST_PREDICTABLE_MODE
     return qRandWeight(min, max);
 #else
     int f = open("/dev/urandom", O_RDONLY | O_CLOEXEC);
@@ -301,12 +305,14 @@ float uRandWeight(const float min, const float max)
 
 uint qRand(const uint min, const uint umax)
 {
+#ifndef FAST_PREDICTABLE_MODE
     static time_t ls = 0;
     if(time(0) > ls)
     {
         srand(time(0));
         ls = time(0) + 33;
     }
+#endif
     const int rv = rand();
     const uint max = umax + 1;
     if(rv == 0)
@@ -316,7 +322,7 @@ uint qRand(const uint min, const uint umax)
 
 uint uRand(const uint min, const uint umax)
 {
-#ifdef FAST_MODE
+#ifdef FAST_PREDICTABLE_MODE
     return qRand(min, umax);
 #else
     int f = open("/dev/urandom", O_RDONLY | O_CLOEXEC);
@@ -519,17 +525,22 @@ static inline float SGD(const float input, const float error)
 
 float Momentum(const float input, const float error, float* momentum)
 {
+    // const float err = (_lrate * error * input);
+    // const float ret = err + _lmomentum * momentum[0];
+    // momentum[0] = err;
+    // return ret;
+
     const float err = (_lrate * error * input) + _lmomentum * momentum[0];
     momentum[0] = err;
     return err;
 }
 
-float Nesterov(const float input, const float error, const float weight, float* momentum)
+float Optional(const float input, const float error, float* momentum)
 {
-    const float mom = _lmomentum * momentum[0];
-    const float err = (_lrate * error * input) * (weight - mom) + mom;
-    momentum[0] = err;
-    return err;
+    if(_optimiser == 1)
+        return Momentum(input, error, momentum);
+    
+    return SGD(input, error);
 }
 
 
@@ -629,9 +640,9 @@ float doDiscriminator(const float* input, const float eo)
             continue;
 
         for(int j = 0; j < d1[i].weights; j++)
-            d1[i].data[j] += SGD(input[j], e1[i]); //Momentum(input[j], e1[i], &d1[i].momentum[j]);
+            d1[i].data[j] += Optional(input[j], e1[i], &d1[i].momentum[j]); //SGD(input[j], e1[i]); //Momentum(input[j], e1[i], &d1[i].momentum[j]);
 
-        d1[i].bias += SGD(1, e1[i]); //Momentum(1, e1[i], &d1[i].bias_momentum);
+        d1[i].bias += Optional(1, e1[i], &d1[i].bias_momentum); //SGD(1, e1[i]); //Momentum(1, e1[i], &d1[i].bias_momentum);
     }
 
     // layer 2
@@ -641,9 +652,9 @@ float doDiscriminator(const float* input, const float eo)
             continue;
 
         for(int j = 0; j < d2[i].weights; j++)
-            d2[i].data[j] += SGD(o1[j], e2[i]); //Momentum(o1[j], e2[i], &d2[i].momentum[j]);
+            d2[i].data[j] += Optional(o1[j], e2[i], &d2[i].momentum[j]); //SGD(o1[j], e2[i]); //Momentum(o1[j], e2[i], &d2[i].momentum[j]);
 
-        d2[i].bias += SGD(1, e2[i]); //Momentum(1, e2[i], &d2[i].bias_momentum);
+        d2[i].bias += Optional(1, e2[i], &d2[i].bias_momentum); //SGD(1, e2[i]); //Momentum(1, e2[i], &d2[i].bias_momentum);
     }
 
     // layer 3
@@ -653,16 +664,16 @@ float doDiscriminator(const float* input, const float eo)
             continue;
             
         for(int j = 0; j < d3[i].weights; j++)
-            d3[i].data[j] += SGD(o2[j], e3[i]); //Momentum(o2[j], e3[i], &d3[i].momentum[j]);
+            d3[i].data[j] += Optional(o2[j], e3[i], &d3[i].momentum[j]); //SGD(o2[j], e3[i]); //Momentum(o2[j], e3[i], &d3[i].momentum[j]);
 
-        d3[i].bias += SGD(1, e3[i]); //Momentum(1, e3[i], &d3[i].bias_momentum);
+        d3[i].bias += Optional(1, e3[i], &d3[i].bias_momentum); //SGD(1, e3[i]); //Momentum(1, e3[i], &d3[i].bias_momentum);
     }
 
     // layer 4
     for(int j = 0; j < d4.weights; j++)
-        d4.data[j] += SGD(o3[j], e4); //Momentum(o3[j], e4, &d4.momentum[j]);
+        d4.data[j] += Optional(o3[j], e4, &d4.momentum[j]); //SGD(o3[j], e4); //Momentum(o3[j], e4, &d4.momentum[j]);
 
-    d4.bias += SGD(1, e4); //Momentum(1, e4, &d4.bias_momentum);
+    d4.bias += Optional(1, e4, &d4.bias_momentum); //SGD(1, e4); //Momentum(1, e4, &d4.bias_momentum);
 
     // done, return forward prop output
     return output;
@@ -745,6 +756,11 @@ void trainDataset(const char* file)
     // save weights
     saveWeights();
 }
+
+
+//*************************************
+// program functions
+//*************************************
 
 void consoleAsk()
 {
