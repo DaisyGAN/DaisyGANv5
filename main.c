@@ -34,32 +34,32 @@
 
 ///
 
+// #define FAST_PREDICTABLE_MODE
+// #define DATA_SIZE 995
+// #define OUTPUT_QUOTES 33333
+// #define FIRSTLAYER_SIZE 256
+// #define HIDDEN_SIZE 256
+// #define TRAINING_LOOPS 1
+// const float _lrate     = 0.03;
+// const float _ldropout   = 0.2;
+// uint        _loptimiser = 4;
+// const float _lmomentum = 0.1;
+// const float _lrmsalpha  = 0.2; //0.99
+// const float _lgain     = 1.0;
+
+// this is not the vegetarian option
 #define FAST_PREDICTABLE_MODE
-#define DATA_SIZE 995
+#define DATA_SIZE 3333
 #define OUTPUT_QUOTES 33333
-#define FIRSTLAYER_SIZE 256
-#define HIDDEN_SIZE 256
+#define FIRSTLAYER_SIZE 512
+#define HIDDEN_SIZE 1024
 #define TRAINING_LOOPS 1
 const float _lrate     = 0.03;
 const float _ldropout   = 0.2;
-uint        _loptimiser = 4;
+uint        _loptimiser = 1;
 const float _lmomentum = 0.1;
-const float _lrmsalpha  = 0.2; //0.99
+const float _lrmsalpha  = 0.2;
 const float _lgain     = 1.0;
-
-// this is not the vegetarian option
-// //#define FAST_PREDICTABLE_MODE
-// #define DATA_SIZE 995
-// #define OUTPUT_QUOTES 333
-// #define FIRSTLAYER_SIZE 512
-// #define HIDDEN_SIZE 1024
-// #define TRAINING_LOOPS 1
-// const float _lrate     = 0.03;
-// const float _ldropout   = 0.5;
-// uint        _loptimiser = 1;
-// const float _lmomentum = 0.1;
-// const float _lrmsalpha  = 0.2;
-// const float _lgain     = 1.0;
 
 //
 
@@ -950,7 +950,7 @@ void findBest()
                 low = rmse;
             if(rmse > high)
                 high = rmse;
-            if(rmse < lowest_low)
+            if(rmse > 0 && rmse < lowest_low)
             {
                 lowest_low = rmse;
                 saveWeights();
