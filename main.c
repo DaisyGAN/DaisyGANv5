@@ -28,9 +28,9 @@
 ///
 
 #define TABLE_SIZE_MAX 80000
-#define MESSAGE_SIZE 256
 #define DIGEST_SIZE 16
 #define WORD_SIZE 256 //32
+#define MESSAGE_SIZE WORD_SIZE*DIGEST_SIZE
 
 ///
 
