@@ -989,7 +989,7 @@ int main(int argc, char *argv[])
 
                 const time_t st = time(0);
                 float mean = 0, low = 9999999, high = 0;
-                for(uint j = 0; j <= 6; j++)
+                for(uint j = 0; j < 6; j++)
                 {
                     resetPerceptrons();
                     const float rmse = trainDataset();
@@ -1000,7 +1000,7 @@ int main(int argc, char *argv[])
                         high = rmse;
                 }
                 printf("Lo  RMSE:   %f\n", low);
-                printf("Avg RMSE:   %f\n", mean / 6);
+                printf("Avg RMSE:    %f\n", mean / 6);
                 printf("Hi  RMSE:   %f\n", high);
                 printf("Time Taken: %.2f mins\n", ((double)(time(0)-st)) / 60.0);
             }
