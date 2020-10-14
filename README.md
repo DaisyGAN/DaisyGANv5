@@ -4,7 +4,7 @@ Technically a generative adversarial network anymore.
 ## Example Usage
 - ```./cfdgan retrain <optional file path>```
 - Train the network from the provided dataset.
-\n
+
 - ```./cfdgan best```
 - This will iterate each optimiser 6 times outputting the RMSE in-order to illustrate the optimiser which produces the best RMSE on the current dataset.
 
