@@ -376,7 +376,7 @@ void timestamp()
 // create layer
 //*************************************
 
-void createPerceptron(ptron* p, const uint weights, const uint random)
+void createPerceptron(ptron* p, const uint weights)
 {
     p->data = malloc(weights * sizeof(float));
     if(p->data == NULL)
@@ -394,22 +394,48 @@ void createPerceptron(ptron* p, const uint weights, const uint random)
 
     p->weights = weights;
 
-    if(random == 1)
+    for(uint i = 0; i < weights; i++)
     {
-        for(uint i = 0; i < weights; i++)
-        {
-            p->data[i] = qRandWeight(-1, 1);
-            p->momentum[i] = 0;
-        }
-    }
-    else if(random == 0)
-    {
-        memset(p->data, 0, weights * sizeof(float));
-        memset(p->momentum, 0, weights * sizeof(float));
+        p->data[i] = qRandWeight(-1, 1);
+        p->momentum[i] = 0;
     }
 
     p->bias = qRandWeight(-1, 1);
     p->bias_momentum = 0;
+}
+
+void resetPerceptron(ptron* p)
+{
+    for(uint i = 0; i < p->weights; i++)
+    {
+        p->data[i] = qRandWeight(-1, 1);
+        p->momentum[i] = 0;
+    }
+
+    p->bias = qRandWeight(-1, 1);
+    p->bias_momentum = 0;
+}
+
+void createPerceptrons()
+{
+    for(int i = 0; i < FIRSTLAYER_SIZE; i++)
+        createPerceptron(&d1[i], DIGEST_SIZE);
+    for(int i = 0; i < HIDDEN_SIZE; i++)
+        createPerceptron(&d2[i], FIRSTLAYER_SIZE);
+    for(int i = 0; i < HIDDEN_SIZE; i++)
+        createPerceptron(&d3[i], HIDDEN_SIZE);
+    createPerceptron(&d4, HIDDEN_SIZE);
+}
+
+void resetPerceptrons()
+{
+    for(int i = 0; i < FIRSTLAYER_SIZE; i++)
+        resetPerceptron(&d1[i]);
+    for(int i = 0; i < HIDDEN_SIZE; i++)
+        resetPerceptron(&d2[i]);
+    for(int i = 0; i < HIDDEN_SIZE; i++)
+        resetPerceptron(&d3[i]);
+    resetPerceptron(&d4);
 }
 
 
@@ -757,8 +783,10 @@ void loadDataset(const char* file)
     printf("Training Data Loaded.\n");
 }
 
-void trainDataset()
+float trainDataset()
 {
+    float rmse = 0;
+
     // train discriminator
     for(int j = 0; j < TRAINING_LOOPS; j++)
     {
@@ -786,11 +814,15 @@ void trainDataset()
             }
         }
 
-        printf("RMSE: %f\n", rmseDiscriminator());
+        rmse = rmseDiscriminator();
+        printf("RMSE: %f\n", rmse);
     }
 
     // save weights
     saveWeights();
+
+    // return rmse
+    return rmse;
 }
 
 
@@ -906,13 +938,7 @@ void rndGen(const char* file, const float max)
 int main(int argc, char *argv[])
 {
     // init discriminator
-    for(int i = 0; i < FIRSTLAYER_SIZE; i++)
-        createPerceptron(&d1[i], DIGEST_SIZE, 1);
-    for(int i = 0; i < HIDDEN_SIZE; i++)
-        createPerceptron(&d2[i], FIRSTLAYER_SIZE, 1);
-    for(int i = 0; i < HIDDEN_SIZE; i++)
-        createPerceptron(&d3[i], HIDDEN_SIZE, 1);
-    createPerceptron(&d4, HIDDEN_SIZE, 1);
+    createPerceptrons();
 
     // load lookup table
     loadTable("tgdict.txt");
@@ -951,6 +977,8 @@ int main(int argc, char *argv[])
 
         if(strcmp(argv[1], "best") == 0)
         {
+            srand(time(0)); //kill any predictability in the random generator
+
             remove("weights.dat");
             loadDataset("tgmsg.txt");
 
@@ -959,9 +987,17 @@ int main(int argc, char *argv[])
                 _loptimiser = i;
                 printf("\nOptimiser: %u\n", _loptimiser);
 
+                const time_t st = time(0);
+                float mean = 0;
                 for(uint j = 0; j <= 6; j++)
-                    trainDataset();
+                {
+                    resetPerceptrons();
+                    mean += trainDataset();
+                }
+                printf("Avg RMSE:   %f\n", mean / 6);
+                printf("Time Taken: %.2f mins\n", ((double)(time(0)-st)) / 60.0);
             }
+            printf("\n");
             exit(0);
         }
 
