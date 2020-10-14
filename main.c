@@ -34,7 +34,7 @@
 
 ///
 
-#define FAST_PREDICTABLE_MODE
+//#define FAST_PREDICTABLE_MODE
 #define DATA_SIZE 995
 #define OUTPUT_QUOTES 333
 #define FIRSTLAYER_SIZE 256
@@ -1000,7 +1000,7 @@ int main(int argc, char *argv[])
                         high = rmse;
                 }
                 printf("Lo  RMSE:   %f\n", low);
-                printf("Avg RMSE:    %f\n", mean / 6);
+                printf("Avg RMSE:   ~ %f\n", mean / 6);
                 printf("Hi  RMSE:   %f\n", high);
                 printf("Time Taken: %.2f mins\n", ((double)(time(0)-st)) / 60.0);
             }
@@ -1021,7 +1021,7 @@ int main(int argc, char *argv[])
 
         if(strcmp(argv[1], "gen") == 0)
         {
-            rndGen("out.txt", 0.06356);
+            rndGen("out.txt", 0.5);
             exit(0);
         }
 
@@ -1037,7 +1037,7 @@ int main(int argc, char *argv[])
         exit(0);
     }
 
-    // no commands ? then I would suppose we are running the generator
+    // no commands ? run as service
     loadWeights();
 
     // main loop
