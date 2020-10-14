@@ -30,13 +30,13 @@
 #define TABLE_SIZE_MAX 80000
 #define MESSAGE_SIZE 256
 #define DIGEST_SIZE 16
-#define WORD_SIZE 32
+#define WORD_SIZE 256 //32
 
 ///
 
 #define FAST_PREDICTABLE_MODE
 #define DATA_SIZE 995
-#define OUTPUT_QUOTES 333
+#define OUTPUT_QUOTES 33333
 #define FIRSTLAYER_SIZE 256
 #define HIDDEN_SIZE 256
 #define TRAINING_LOOPS 1
@@ -927,6 +927,40 @@ void rndGen(const char* file, const float max)
     }
 }
 
+void findBest()
+{
+    float lowest_low = 999999999;
+    for(uint i = 0; i <= 4; i++)
+    {
+        _loptimiser = i;
+        printf("\nOptimiser: %u\n", _loptimiser);
+
+        const time_t st = time(0);
+        float mean = 0, low = 9999999, high = 0;
+        for(uint j = 0; j < 6; j++)
+        {
+            resetPerceptrons();
+            const float rmse = trainDataset();
+            mean += rmse;
+            if(rmse < low)
+                low = rmse;
+            if(rmse > high)
+                high = rmse;
+            if(rmse < lowest_low)
+            {
+                lowest_low = rmse;
+                saveWeights();
+            }
+        }
+        printf("Lo  RMSE:   %f\n", low);
+        printf("Hi  RMSE:   %f\n", high);
+        printf("Avg RMSE:   ~ %f\n", mean / 6);
+        printf("RMSE Delta: %f\n", high-low);
+        printf("Time Taken: %.2f mins\n", ((double)(time(0)-st)) / 60.0);
+    }
+    printf("\nThe dataset with an RMSE of %f was saved to weights.dat\n\n", lowest_low);
+}
+
 
 //*************************************
 // program entry point
@@ -938,7 +972,7 @@ int main(int argc, char *argv[])
     createPerceptrons();
 
     // load lookup table
-    loadTable("tgdict.txt");
+    loadTable("botdict.txt");
 
     // are we issuing any commands?
     if(argc == 3)
@@ -968,7 +1002,7 @@ int main(int argc, char *argv[])
         {
             _log = 1;
             remove("weights.dat");
-            loadDataset("tgmsg.txt");
+            loadDataset("botmsg.txt");
             trainDataset();
             saveWeights();
             exit(0);
@@ -979,38 +1013,8 @@ int main(int argc, char *argv[])
             srand(time(0)); //kill any predictability in the random generator
 
             remove("weights.dat");
-            loadDataset("tgmsg.txt");
-
-            float lowest_low = 999999999;
-            for(uint i = 0; i <= 4; i++)
-            {
-                _loptimiser = i;
-                printf("\nOptimiser: %u\n", _loptimiser);
-
-                const time_t st = time(0);
-                float mean = 0, low = 9999999, high = 0;
-                for(uint j = 0; j < 6; j++)
-                {
-                    resetPerceptrons();
-                    const float rmse = trainDataset();
-                    mean += rmse;
-                    if(rmse < low)
-                        low = rmse;
-                    if(rmse > high)
-                        high = rmse;
-                    if(rmse < lowest_low)
-                    {
-                        lowest_low = rmse;
-                        saveWeights();
-                    }
-                }
-                printf("Lo  RMSE:   %f\n", low);
-                printf("Hi  RMSE:   %f\n", high);
-                printf("Avg RMSE:   ~ %f\n", mean / 6);
-                printf("RMSE Delta: %f\n", high-low);
-                printf("Time Taken: %.2f mins\n", ((double)(time(0)-st)) / 60.0);
-            }
-            printf("\nThe dataset with an RMSE of %f was saved to weights.dat\n\n", lowest_low);
+            loadDataset("botmsg.txt");
+            findBest();
             exit(0);
         }
 
@@ -1050,15 +1054,16 @@ int main(int argc, char *argv[])
     printf("Running ! ...\n\n");
     while(1)
     {
-        if(countLines("tgmsg.txt") >= DATA_SIZE)
+        if(countLines("botmsg.txt") >= DATA_SIZE)
         {
             timestamp();
             const time_t st = time(0);
-            loadTable("tgdict.txt");
-            loadDataset("tgmsg.txt");
-            clearFile("tgmsg.txt");
-            trainDataset();
-            saveWeights();
+            memset(&wtable, 0x00, TABLE_SIZE_MAX*WORD_SIZE);
+            loadTable("botdict.txt");
+            loadDataset("botmsg.txt");
+            clearFile("botmsg.txt");
+            findBest();
+            loadWeights();
             rndGen("out.txt", 0.1);
             printf("Just generated a new dataset.\n");
             timestamp();
