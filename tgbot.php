@@ -33,7 +33,7 @@
                 $str .= str_replace("\n", "", $p) . " ";
         $str = rtrim($str, ' ');
 
-        appendFileUnique("botmsg.txt", str_replace("\n", "", substr($str, 0, 4096)));
+        appendFileUnique("botmsg.txt", str_replace("\n", "", substr($str, 0, 4090)));
 
         foreach($pp as $p)
             if(strlen($p) <= 250 && $p != "" && $p != " ")
