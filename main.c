@@ -34,7 +34,7 @@
 
 ///
 
-//#define FAST_PREDICTABLE_MODE
+#define FAST_PREDICTABLE_MODE
 #define DATA_SIZE 995
 #define OUTPUT_QUOTES 333
 #define FIRSTLAYER_SIZE 256
@@ -818,9 +818,6 @@ float trainDataset()
         printf("RMSE: %f\n", rmse);
     }
 
-    // save weights
-    saveWeights();
-
     // return rmse
     return rmse;
 }
@@ -952,6 +949,7 @@ int main(int argc, char *argv[])
             remove("weights.dat");
             loadDataset(argv[2]);
             trainDataset();
+            saveWeights();
             exit(0);
         }
 
@@ -972,6 +970,7 @@ int main(int argc, char *argv[])
             remove("weights.dat");
             loadDataset("tgmsg.txt");
             trainDataset();
+            saveWeights();
             exit(0);
         }
 
@@ -982,6 +981,7 @@ int main(int argc, char *argv[])
             remove("weights.dat");
             loadDataset("tgmsg.txt");
 
+            float lowest_low = 999999999;
             for(uint i = 0; i <= 4; i++)
             {
                 _loptimiser = i;
@@ -998,13 +998,19 @@ int main(int argc, char *argv[])
                         low = rmse;
                     if(rmse > high)
                         high = rmse;
+                    if(rmse < lowest_low)
+                    {
+                        lowest_low = rmse;
+                        saveWeights();
+                    }
                 }
                 printf("Lo  RMSE:   %f\n", low);
-                printf("Avg RMSE:   ~ %f\n", mean / 6);
                 printf("Hi  RMSE:   %f\n", high);
+                printf("Avg RMSE:   ~ %f\n", mean / 6);
+                printf("RMSE Delta: %f\n", high-low);
                 printf("Time Taken: %.2f mins\n", ((double)(time(0)-st)) / 60.0);
             }
-            printf("\n");
+            printf("\nThe dataset with an RMSE of %f was saved to weights.dat\n\n", lowest_low);
             exit(0);
         }
 
@@ -1050,8 +1056,9 @@ int main(int argc, char *argv[])
             const time_t st = time(0);
             loadTable("tgdict.txt");
             loadDataset("tgmsg.txt");
-            trainDataset();
             clearFile("tgmsg.txt");
+            trainDataset();
+            saveWeights();
             rndGen("out.txt", 0.1);
             printf("Just generated a new dataset.\n");
             timestamp();
