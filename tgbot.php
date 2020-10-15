@@ -25,7 +25,12 @@
         if(strpos($j->{'message'}->{'text'}, "/info") !== FALSE)
         {
             $chatid = $j->{'message'}->{'chat'}->{'id'};
-            file_get_contents("https://api.telegram.org/bot" . $token . "/sendMessage?chat_id=" . $chatid . "&text=".urlencode(file_get_contents("portstat.txt")));
+            $lines = explode(PHP_EOL, file_get_contents('/var/www/html/botmsg.txt'));
+            $bm = file_get_contents("portstat.txt");
+            $p = strstr($bm, "Digest size: ");
+            $p = substr($p, 13);
+            $p = explode("\n", $p, 2)[0];
+            file_get_contents("https://api.telegram.org/bot" . $token . "/sendMessage?chat_id=" . $chatid . "&text=".urlencode($bm . "\nI am " . count($lines) . " / " . $p . " away from re-computing my network.\n"));
             http_response_code(200);
             exit;
         }
