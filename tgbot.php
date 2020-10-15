@@ -21,6 +21,14 @@
             http_response_code(200);
             exit;
         }
+        
+        if(strpos($j->{'message'}->{'text'}, "/info") !== FALSE)
+        {
+            $chatid = $j->{'message'}->{'chat'}->{'id'};
+            file_get_contents("https://api.telegram.org/bot" . $token . "/sendMessage?chat_id=" . $chatid . "&text=".urlencode(file_get_contents("portstat.txt")));
+            http_response_code(200);
+            exit;
+        }
 
         $msg = $j->{'message'}->{'text'};
 
