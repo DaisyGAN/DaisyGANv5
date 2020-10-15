@@ -1013,7 +1013,8 @@ float findBest(const uint maxopt)
             printf("Time Taken: %.2f mins\n", ((double)(time(0)-st)) / 60.0);
         }
     }
-    printf("\nThe dataset with an RMSE of %f was saved to weights.dat\n\n", lowest_low);
+    if(_log == 2)
+        printf("\nThe dataset with an RMSE of %f was saved to weights.dat\n\n", lowest_low);
     return lowest_low;
 }
 
@@ -1206,7 +1207,9 @@ int main(int argc, char *argv[])
 
             float rmse = 0;
             uint fv = 0;
-            while(fv < 70 || fv > 95) //we want random string to fail at-least 70% of the time / but we don't want it to fail all of the time
+            uint min = 70;
+            uint highest = 0;
+            while(fv < min || fv > 95) //we want random string to fail at-least 70% of the time / but we don't want it to fail all of the time
             {
                 srand(time(0)); //kill any predictability in the random generator
 
@@ -1219,7 +1222,16 @@ int main(int argc, char *argv[])
 
                 loadWeights();
                 fv = hasFailed();
-                printf("Fail Variance: %u\n", fv);
+                if(fv > highest)
+                    highest = fv;
+
+                if(time(0) - st > 180) //If taking longer than 3 mins just settle with the highest logged in that period
+                {
+                    min = highest;
+                    printf("Taking too long, new target: %u\n", min);
+                }
+
+                printf("RMSE: %f / Fail: %u\n", rmse, fv);
             }
 
             rndGen("out.txt", 0.1);
@@ -1237,7 +1249,8 @@ int main(int argc, char *argv[])
                 fprintf(f, "L-Rate: %f\n", _lrate);
                 fprintf(f, "Dropout: %f\n", _ldropout);
                 fprintf(f, "Momentum: %f\n", _lmomentum);
-                fprintf(f, "Alpha: %f\n", _lrmsalpha);
+                fprintf(f, "Alpha: %f\n\n", _lrmsalpha);
+                fprintf(f, "I is very smort and I hab big brain of %'u perceptronic neurons with %'u configurable weights.\n", FIRSTLAYER_SIZE + HIDDEN_SIZE + HIDDEN_SIZE + 1, FIRSTLAYER_SIZE*(DIGEST_SIZE+1) + HIDDEN_SIZE*(FIRSTLAYER_SIZE+1) + HIDDEN_SIZE*(HIDDEN_SIZE+1) + (HIDDEN_SIZE+1));
                 fclose(f);
             }
         }
