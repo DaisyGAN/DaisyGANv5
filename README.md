@@ -8,8 +8,8 @@ Technically a generative adversarial network anymore.
 - ```./cfdgan best```
 <br>This will iterate each optimiser 6 times outputting the RMSE in-order to illustrate the optimiser which produces the best RMSE on the current dataset.
 
-- ```./cfdgan rndbest```
-<br>This will run the best function with random learning parameters within an acceptable range.
+- ```./cfdgan rndbest <optional 0-100 fail variance>```
+<br>This will run the best function with random learning parameters within an acceptable range. You want the fail variance to be high as the test is against random strings, if the generation was good, random strings should fail most of the time but not all of the time.
 
 - ```./cfdgan "this is an example scentence"```
 <br>Get a percentage of likelyhood that the sampled dataset wrote the provided message.
