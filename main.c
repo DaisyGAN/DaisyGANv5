@@ -387,6 +387,13 @@ uint uRand(const uint min, const uint umax)
 #endif
 }
 
+void newSRAND()
+{
+    struct timespec c;
+    clock_gettime(CLOCK_MONOTONIC, &c);
+    srand(time(0)+c.tv_nsec);
+}
+
 //https://stackoverflow.com/questions/30432856/best-way-to-get-number-of-lines-in-a-file-c
 uint countLines(const char* file)
 {
@@ -1075,7 +1082,7 @@ int main(int argc, char *argv[])
             const uint min = atoi(argv[2]);
             while(fv < min) //we want random string to fail at-least 70% of the time
             {
-                srand(time(0)); //kill any predictability in the random generator
+                newSRAND(); //kill any predictability in the random generator
 
                 _lrate     = uRandFloat(0.001, 0.03);
                 _ldropout   = uRandFloat(0.2, 0.3);
@@ -1117,7 +1124,7 @@ int main(int argc, char *argv[])
             uint fv = 0;
             while(fv < 70) //we want random string to fail at-least 70% of the time
             {
-                srand(time(0)); //kill any predictability in the random generator
+                newSRAND(); //kill any predictability in the random generator
 
                 _lrate     = uRandFloat(0.001, 0.03);
                 _ldropout   = uRandFloat(0.2, 0.3);
@@ -1139,7 +1146,8 @@ int main(int argc, char *argv[])
 
         if(strcmp(argv[1], "best") == 0)
         {
-            srand(time(0)); //kill any predictability in the random generator
+            newSRAND(); //kill any predictability in the random generator
+
             _log = 2;
             remove("weights.dat");
             loadDataset("botmsg.txt");
@@ -1159,7 +1167,8 @@ int main(int argc, char *argv[])
 
         if(strcmp(argv[1], "rnd") == 0)
         {
-            srand(time(0));
+            newSRAND();
+
             printf("> %.2f\n", rndScentence(0));
             exit(0);
         }
@@ -1173,7 +1182,7 @@ int main(int argc, char *argv[])
 
         if(strcmp(argv[1], "rndloop") == 0)
         {
-            srand(time(0));
+            newSRAND();
             while(1)
                 printf("> %.2f\n\n", rndScentence(0));
         }
@@ -1211,7 +1220,7 @@ int main(int argc, char *argv[])
             uint highest = 0;
             while(fv < min || fv > 95) //we want random string to fail at-least 70% of the time / but we don't want it to fail all of the time
             {
-                srand(time(0)); //kill any predictability in the random generator
+                newSRAND(); //kill any predictability in the random generator
 
                 _lrate     = uRandFloat(0.001, 0.03);
                 _ldropout   = uRandFloat(0.2, 0.3);
