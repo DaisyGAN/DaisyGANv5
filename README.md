@@ -1,6 +1,8 @@
 # DaisyGANv5
 Technically a generative adversarial network anymore. 
 
+This version can randomly generate its learning parameters and then test to see how successful the generated weights were by doing a variance test against random data; it goes by the rule that if random strings fail at-least 70% of the time, then the weights are successful.
+
 ## Example Usage
 - ```./cfdgan retrain <optional file path>```
 <br>Train the network from the provided dataset.
