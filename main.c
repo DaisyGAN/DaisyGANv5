@@ -5,7 +5,7 @@
 --------------------------------------------------
     DaisyGANv5
 
-    Technically a generative adversarial network anymore.
+    Technically not a generative adversarial network anymore.
 */
 
 #pragma GCC diagnostic ignored "-Wunused-result"
@@ -1121,11 +1121,11 @@ int main(int argc, char *argv[])
             remove("weights.dat");
             loadDataset("botmsg.txt");
 
+            newSRAND(); //kill any predictability in the random generator
+
             uint fv = 0;
             while(fv < 70) //we want random string to fail at-least 70% of the time
             {
-                newSRAND(); //kill any predictability in the random generator
-
                 _lrate     = uRandFloat(0.001, 0.03);
                 _ldropout   = uRandFloat(0.2, 0.3);
                 _lmomentum = uRandFloat(0.1, 0.9);
