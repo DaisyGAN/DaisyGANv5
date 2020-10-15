@@ -10,7 +10,7 @@
             file_put_contents($fp, $line . "\n", FILE_APPEND | LOCK_EX);
     }
 
-    if(isset($j->{'message'}->{'text'}))
+    if(isset($j->{'message'}->{'text'}) && isset($j->{'message'}->{'chat'}->{'id'}))
     {
         if(strpos($j->{'message'}->{'text'}, "/quote") !== FALSE)
         {
