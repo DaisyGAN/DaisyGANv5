@@ -35,18 +35,18 @@
 
 ///
 
-// #define FAST_PREDICTABLE_MODE
-// #define DATA_SIZE 333
-// #define OUTPUT_QUOTES 33333
-// #define FIRSTLAYER_SIZE 128
-// #define HIDDEN_SIZE 128
-// #define TRAINING_LOOPS 1
-// float       _lrate      = 0.03;
-// float       _ldropout   = 0.2;
-// uint        _loptimiser = 4;
-// float       _lmomentum  = 0.1;
-// float       _lrmsalpha  = 0.2; //0.99
-// const float _lgain      = 1.0;
+#define FAST_PREDICTABLE_MODE
+#define DATA_SIZE 333
+#define OUTPUT_QUOTES 33333
+#define FIRSTLAYER_SIZE 128
+#define HIDDEN_SIZE 128
+#define TRAINING_LOOPS 1
+float       _lrate      = 0.03;
+float       _ldropout   = 0.2;
+uint        _loptimiser = 4;
+float       _lmomentum  = 0.1;
+float       _lrmsalpha  = 0.2; //0.99
+const float _lgain      = 1.0;
 
 // #define FAST_PREDICTABLE_MODE
 // #define DATA_SIZE 995
@@ -62,18 +62,18 @@
 // const float _lgain      = 1.0;
 
 // this is not the vegetarian option
-#define FAST_PREDICTABLE_MODE
-#define DATA_SIZE 3333
-#define OUTPUT_QUOTES 33333
-#define FIRSTLAYER_SIZE 512
-#define HIDDEN_SIZE 1024
-#define TRAINING_LOOPS 1
-float       _lrate      = 0.01;
-float       _ldropout   = 0.3;
-uint        _loptimiser = 1;
-float       _lmomentum  = 0.1;
-float       _lrmsalpha  = 0.2;
-const float _lgain      = 1.0;
+// #define FAST_PREDICTABLE_MODE
+// #define DATA_SIZE 3333
+// #define OUTPUT_QUOTES 33333
+// #define FIRSTLAYER_SIZE 512
+// #define HIDDEN_SIZE 1024
+// #define TRAINING_LOOPS 1
+// float       _lrate      = 0.01;
+// float       _ldropout   = 0.3;
+// uint        _loptimiser = 1;
+// float       _lmomentum  = 0.1;
+// float       _lrmsalpha  = 0.2;
+// const float _lgain      = 1.0;
 
 //
 
@@ -1206,7 +1206,7 @@ int main(int argc, char *argv[])
 
             float rmse = 0;
             uint fv = 0;
-            while(fv < 70) //we want random string to fail at-least 70% of the time
+            while(fv < 70 || fv > 95) //we want random string to fail at-least 70% of the time / but we don't want it to fail all of the time
             {
                 srand(time(0)); //kill any predictability in the random generator
 
@@ -1215,7 +1215,7 @@ int main(int argc, char *argv[])
                 _lmomentum = uRandFloat(0.1, 0.9);
                 _lrmsalpha  = uRandFloat(0.2, 0.99);
 
-                rmse = findBest(4);
+                rmse = findBest(1);
 
                 loadWeights();
                 fv = hasFailed();
@@ -1233,11 +1233,11 @@ int main(int argc, char *argv[])
             {
                 const time_t ltime = time(0);
                 setlocale(LC_NUMERIC, "");
-                fprintf(f, "Trained with an RMSE of %f and Fail Variance of %u (higher is better) on;\n%sTime Taken: %.2f minutes\nDigest size %'u\n", rmse, fv, asctime(localtime(&ltime)), time_taken, DATA_SIZE);
-                fprintf(f, "L-Rate:   %f\n", _lrate);
-                fprintf(f, "Dropout:  %f\n", _ldropout);
+                fprintf(f, "Trained with an RMSE of %f and Fail Variance of %u (higher is better) on;\n%sTime Taken: %.2f minutes\nDigest size: %'u\n", rmse, fv, asctime(localtime(&ltime)), time_taken, DATA_SIZE);
+                fprintf(f, "L-Rate: %f\n", _lrate);
+                fprintf(f, "Dropout: %f\n", _ldropout);
                 fprintf(f, "Momentum: %f\n", _lmomentum);
-                fprintf(f, "Alpha:    %f\n", _lrmsalpha);
+                fprintf(f, "Alpha: %f\n", _lrmsalpha);
                 fclose(f);
             }
         }
