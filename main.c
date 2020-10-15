@@ -21,6 +21,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
+#include <locale.h>
 
 #define uint uint32_t
 #define NO_LEARN -2
@@ -35,17 +36,30 @@
 ///
 
 // #define FAST_PREDICTABLE_MODE
+// #define DATA_SIZE 333
+// #define OUTPUT_QUOTES 33333
+// #define FIRSTLAYER_SIZE 128
+// #define HIDDEN_SIZE 128
+// #define TRAINING_LOOPS 1
+// float       _lrate      = 0.03;
+// float       _ldropout   = 0.2;
+// uint        _loptimiser = 4;
+// float       _lmomentum  = 0.1;
+// float       _lrmsalpha  = 0.2; //0.99
+// const float _lgain      = 1.0;
+
+// #define FAST_PREDICTABLE_MODE
 // #define DATA_SIZE 995
 // #define OUTPUT_QUOTES 33333
 // #define FIRSTLAYER_SIZE 256
 // #define HIDDEN_SIZE 256
 // #define TRAINING_LOOPS 1
-// const float _lrate     = 0.03;
-// const float _ldropout   = 0.2;
+// float       _lrate      = 0.03;
+// float       _ldropout   = 0.2;
 // uint        _loptimiser = 4;
-// const float _lmomentum = 0.1;
-// const float _lrmsalpha  = 0.2; //0.99
-// const float _lgain     = 1.0;
+// float       _lmomentum  = 0.1;
+// float       _lrmsalpha  = 0.2; //0.99
+// const float _lgain      = 1.0;
 
 // this is not the vegetarian option
 #define FAST_PREDICTABLE_MODE
@@ -54,12 +68,12 @@
 #define FIRSTLAYER_SIZE 512
 #define HIDDEN_SIZE 1024
 #define TRAINING_LOOPS 1
-const float _lrate     = 0.03;
-const float _ldropout   = 0.2;
+float       _lrate      = 0.01;
+float       _ldropout   = 0.3;
 uint        _loptimiser = 1;
-const float _lmomentum = 0.1;
-const float _lrmsalpha  = 0.2;
-const float _lgain     = 1.0;
+float       _lmomentum  = 0.1;
+float       _lrmsalpha  = 0.2;
+const float _lgain      = 1.0;
 
 //
 
@@ -258,6 +272,39 @@ void loadWeights()
         sleep(333);
 
     fclose(f);
+}
+
+float qRandFloat(const float min, const float max)
+{
+#ifndef FAST_PREDICTABLE_MODE
+    static time_t ls = 0;
+    if(time(0) > ls)
+    {
+        srand(time(0));
+        ls = time(0) + 33;
+    }
+#endif
+    const float rv = (float)rand();
+    if(rv == 0)
+        return min;
+    return ( (rv / RAND_MAX) * (max-min) ) + min;
+}
+
+float uRandFloat(const float min, const float max)
+{
+#ifdef FAST_PREDICTABLE_MODE
+    return qRandFloat(min, max);
+#else
+    int f = open("/dev/urandom", O_RDONLY | O_CLOEXEC);
+    uint s = 0;
+    ssize_t result = read(f, &s, 4);
+    srand(s);
+    close(f);
+    const float rv = (float)rand();
+    if(rv == 0)
+        return min;
+    return ( (rv / RAND_MAX) * (max-min) ) + min;
+#endif
 }
 
 float qRandWeight(const float min, const float max)
@@ -695,7 +742,7 @@ float doDiscriminator(const float* input, const float eo)
     // layer 1
     for(int i = 0; i < FIRSTLAYER_SIZE; i++)
     {
-        if(_ldropout != 0 && uRandWeight(0.01, 1) <= _ldropout)
+        if(_ldropout != 0 && uRandFloat(0, 1) <= _ldropout)
             continue;
 
         for(int j = 0; j < d1[i].weights; j++)
@@ -707,7 +754,7 @@ float doDiscriminator(const float* input, const float eo)
     // layer 2
     for(int i = 0; i < HIDDEN_SIZE; i++)
     {
-        if(_ldropout != 0 && uRandWeight(0.01, 1) <= _ldropout)
+        if(_ldropout != 0 && uRandFloat(0, 1) <= _ldropout)
             continue;
 
         for(int j = 0; j < d2[i].weights; j++)
@@ -719,7 +766,7 @@ float doDiscriminator(const float* input, const float eo)
     // layer 3
     for(int i = 0; i < HIDDEN_SIZE; i++)
     {
-        if(_ldropout != 0 && uRandWeight(0.01, 1) <= _ldropout)
+        if(_ldropout != 0 && uRandFloat(0, 1) <= _ldropout)
             continue;
             
         for(int j = 0; j < d3[i].weights; j++)
@@ -873,7 +920,7 @@ float isHuman(char* str)
     return r*100;
 }
 
-float rndScentence()
+float rndScentence(const uint silent)
 {
     float nstr[DIGEST_SIZE] = {0};
     const int len = uRand(1, DIGEST_SIZE-1);
@@ -883,11 +930,12 @@ float rndScentence()
     for(int i = 0; i < DIGEST_SIZE; i++)
     {
         const uint ind = (((double)nstr[i]+1.0)*(double)TABLE_SIZE_H)+0.5;
-        if(nstr[i] != 0)
+        if(nstr[i] != 0 && silent == 0)
             printf("%s (%.2f) ", wtable[ind], nstr[i]);
     }
 
-    printf("\n");
+    if(silent == 0)
+        printf("\n");
 
     const float r = doDiscriminator(nstr, NO_LEARN);
     return r*100;
@@ -930,10 +978,10 @@ void rndGen(const char* file, const float max)
     }
 }
 
-void findBest()
+float findBest(const uint maxopt)
 {
     float lowest_low = 999999999;
-    for(uint i = 0; i <= 4; i++)
+    for(uint i = 0; i <= maxopt; i++)
     {
         _loptimiser = i;
         if(_log == 2)
@@ -966,6 +1014,19 @@ void findBest()
         }
     }
     printf("\nThe dataset with an RMSE of %f was saved to weights.dat\n\n", lowest_low);
+    return lowest_low;
+}
+
+uint hasFailed()
+{
+    int failvariance = 0;
+    for(int i = 0; i < 100; i++)
+    {
+        const float r = rndScentence(1);
+        if(r < 50)
+            failvariance++;
+    }
+    return failvariance;
 }
 
 
@@ -1002,6 +1063,36 @@ int main(int argc, char *argv[])
             rndGen("out.txt", atof(argv[2]));
             exit(0);
         }
+
+        if(strcmp(argv[1], "rndbest") == 0)
+        {
+            _log = 2;
+            remove("weights.dat");
+            loadDataset("botmsg.txt");
+
+            uint fv = 0;
+            const uint min = atoi(argv[2]);
+            while(fv < min) //we want random string to fail at-least 70% of the time
+            {
+                srand(time(0)); //kill any predictability in the random generator
+
+                _lrate     = uRandFloat(0.001, 0.03);
+                _ldropout   = uRandFloat(0.2, 0.3);
+                _lmomentum = uRandFloat(0.1, 0.9);
+                _lrmsalpha  = uRandFloat(0.2, 0.99);
+                printf("Learning Rate: %f\n", _lrate);
+                printf("Dropout:       %f\n", _ldropout);
+                printf("Momentum:      %f\n", _lmomentum);
+                printf("RMSProp Alpha: %f\n", _lrmsalpha);
+
+                findBest(4);
+
+                loadWeights();
+                fv = hasFailed();
+                printf("Fail Variance: %u\n\n", fv);
+            }
+            exit(0);
+        }
     }
 
     if(argc == 2)
@@ -1016,13 +1107,47 @@ int main(int argc, char *argv[])
             exit(0);
         }
 
+        if(strcmp(argv[1], "rndbest") == 0)
+        {
+            _log = 2;
+            remove("weights.dat");
+            loadDataset("botmsg.txt");
+
+            uint fv = 0;
+            while(fv < 70) //we want random string to fail at-least 70% of the time
+            {
+                srand(time(0)); //kill any predictability in the random generator
+
+                _lrate     = uRandFloat(0.001, 0.03);
+                _ldropout   = uRandFloat(0.2, 0.3);
+                _lmomentum = uRandFloat(0.1, 0.9);
+                _lrmsalpha  = uRandFloat(0.2, 0.99);
+                printf("Learning Rate: %f\n", _lrate);
+                printf("Dropout:       %f\n", _ldropout);
+                printf("Momentum:      %f\n", _lmomentum);
+                printf("RMSProp Alpha: %f\n", _lrmsalpha);
+
+                findBest(4);
+
+                loadWeights();
+                fv = hasFailed();
+                printf("Fail Variance: %u\n\n", fv);
+            }
+            exit(0);
+        }
+
         if(strcmp(argv[1], "best") == 0)
         {
             srand(time(0)); //kill any predictability in the random generator
             _log = 2;
             remove("weights.dat");
             loadDataset("botmsg.txt");
-            findBest();
+            findBest(4);
+
+            loadWeights();
+            const uint fv = hasFailed();
+            printf("Fail Variance: %u\n\n", fv);
+            
             exit(0);
         }
 
@@ -1033,7 +1158,8 @@ int main(int argc, char *argv[])
 
         if(strcmp(argv[1], "rnd") == 0)
         {
-            printf("> %.2f\n", rndScentence());
+            srand(time(0));
+            printf("> %.2f\n", rndScentence(0));
             exit(0);
         }
 
@@ -1046,8 +1172,9 @@ int main(int argc, char *argv[])
 
         if(strcmp(argv[1], "rndloop") == 0)
         {
+            srand(time(0));
             while(1)
-                printf("> %.2f\n\n", rndScentence());
+                printf("> %.2f\n\n", rndScentence(0));
         }
 
         char in[MESSAGE_SIZE] = {0};
@@ -1071,12 +1198,48 @@ int main(int argc, char *argv[])
             loadTable("botdict.txt");
             loadDataset("botmsg.txt");
             clearFile("botmsg.txt");
-            findBest();
-            loadWeights();
+
+            _lrate     = uRandFloat(0.001, 0.03);
+            _ldropout   = uRandFloat(0.2, 0.3);
+            _lmomentum = uRandFloat(0.1, 0.9);
+            _lrmsalpha  = uRandFloat(0.2, 0.99);
+
+            float rmse = 0;
+            uint fv = 0;
+            while(fv < 70) //we want random string to fail at-least 70% of the time
+            {
+                srand(time(0)); //kill any predictability in the random generator
+
+                _lrate     = uRandFloat(0.001, 0.03);
+                _ldropout   = uRandFloat(0.2, 0.3);
+                _lmomentum = uRandFloat(0.1, 0.9);
+                _lrmsalpha  = uRandFloat(0.2, 0.99);
+
+                rmse = findBest(4);
+
+                loadWeights();
+                fv = hasFailed();
+                printf("Fail Variance: %u\n", fv);
+            }
+
             rndGen("out.txt", 0.1);
             printf("Just generated a new dataset.\n");
             timestamp();
-            printf("Time Taken: %.2f mins\n\n", ((double)(time(0)-st)) / 60.0);
+            const double time_taken = ((double)(time(0)-st)) / 60.0;
+            printf("Time Taken: %.2f mins\n\n", time_taken);
+
+            FILE* f = fopen("portstat.txt", "w");
+            if(f != NULL)
+            {
+                const time_t ltime = time(0);
+                setlocale(LC_NUMERIC, "");
+                fprintf(f, "Trained with an RMSE of %f and Fail Variance of %u (higher is better) on;\n%sTime Taken: %.2f minutes\nDigest size %'u\n", rmse, fv, asctime(localtime(&ltime)), time_taken, DATA_SIZE);
+                fprintf(f, "L-Rate:   %f\n", _lrate);
+                fprintf(f, "Dropout:  %f\n", _ldropout);
+                fprintf(f, "Momentum: %f\n", _lmomentum);
+                fprintf(f, "Alpha:    %f\n", _lrmsalpha);
+                fclose(f);
+            }
         }
 
         sleep(9);
