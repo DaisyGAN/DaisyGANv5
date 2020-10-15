@@ -856,7 +856,7 @@ float trainDataset()
                 output[i] = (((double)uRand(0, TABLE_SIZE))/TABLE_SIZE_H)-1.0; //uRandWeight(-1, 1);
             doDiscriminator(&output[0], 0);
 
-             if(_log == 1)
+            if(_log == 1)
                 printf("Training Iteration (%u / %u) [%u / %u]\n RAND | REAL\n", i+1, DATA_SIZE, j+1, TRAINING_LOOPS);
 
             if(_log == 1)
