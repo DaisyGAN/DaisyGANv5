@@ -1084,9 +1084,9 @@ int main(int argc, char *argv[])
             {
                 newSRAND(); //kill any predictability in the random generator
 
-                _lrate     = uRandFloat(0.001, 0.03);
+                _lrate      = uRandFloat(0.001, 0.03);
                 _ldropout   = uRandFloat(0.2, 0.3);
-                _lmomentum = uRandFloat(0.1, 0.9);
+                _lmomentum  = uRandFloat(0.1, 0.9);
                 _lrmsalpha  = uRandFloat(0.2, 0.99);
                 printf("Learning Rate: %f\n", _lrate);
                 printf("Dropout:       %f\n", _ldropout);
@@ -1209,9 +1209,9 @@ int main(int argc, char *argv[])
             loadDataset("botmsg.txt");
             clearFile("botmsg.txt");
 
-            _lrate     = uRandFloat(0.001, 0.03);
+            _lrate      = uRandFloat(0.001, 0.03);
             _ldropout   = uRandFloat(0.2, 0.3);
-            _lmomentum = uRandFloat(0.1, 0.9);
+            _lmomentum  = uRandFloat(0.1, 0.9);
             _lrmsalpha  = uRandFloat(0.2, 0.99);
 
             float rmse = 0;
@@ -1222,9 +1222,9 @@ int main(int argc, char *argv[])
             {
                 newSRAND(); //kill any predictability in the random generator
 
-                _lrate     = uRandFloat(0.001, 0.03);
+                _lrate      = uRandFloat(0.001, 0.03);
                 _ldropout   = uRandFloat(0.2, 0.3);
-                _lmomentum = uRandFloat(0.1, 0.9);
+                _lmomentum  = uRandFloat(0.1, 0.9);
                 _lrmsalpha  = uRandFloat(0.2, 0.99);
 
                 rmse = findBest(1);
