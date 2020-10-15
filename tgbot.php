@@ -25,7 +25,7 @@
         if(strpos($j->{'message'}->{'text'}, "/info") !== FALSE)
         {
             $chatid = $j->{'message'}->{'chat'}->{'id'};
-            $lines = explode(PHP_EOL, file_get_contents('/var/www/html/botmsg.txt'));
+            $lines = explode(PHP_EOL, file_get_contents('botmsg.txt'));
             $bm = file_get_contents("portstat.txt");
             $p = strstr($bm, "Digest size: ");
             $p = substr($p, 13);
