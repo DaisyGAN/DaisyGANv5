@@ -1,5 +1,5 @@
 # DaisyGANv5
-Technically a generative adversarial network anymore. 
+Technically not a generative adversarial network anymore. 
 
 This version can randomly generate its learning parameters and then test to see how successful the generated weights were by doing a variance test against random data; it goes by the rule that if random strings fail at-least 70% of the time, then the weights are successful.
 
