@@ -977,6 +977,7 @@ void rndGen(const char* file, const float max)
                 }
                 
                 k++;
+                count++;
                 fprintf(f, "\n");
                 if(_log == 1)
                     printf("\n");
