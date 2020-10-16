@@ -851,7 +851,7 @@ float trainDataset()
 
             // detrain discriminator on random word sequences 
             float output[DIGEST_SIZE] = {0};
-            const int len = uRand(1, DIGEST_SIZE-1);
+            const int len = uRand(1, DIGEST_SIZE);
             for(int i = 0; i < len; i++)
                 output[i] = (((double)uRand(0, TABLE_SIZE))/TABLE_SIZE_H)-1.0; //uRandWeight(-1, 1);
             doDiscriminator(&output[0], 0);
@@ -930,7 +930,7 @@ float isHuman(char* str)
 float rndScentence(const uint silent)
 {
     float nstr[DIGEST_SIZE] = {0};
-    const int len = uRand(1, DIGEST_SIZE-1);
+    const int len = uRand(1, DIGEST_SIZE);
     for(int i = 0; i < len; i++)
         nstr[i] = (((double)uRand(0, TABLE_SIZE))/TABLE_SIZE_H)-1.0;
 
