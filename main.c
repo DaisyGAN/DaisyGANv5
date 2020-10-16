@@ -956,7 +956,7 @@ void rndGen(const char* file, const float max)
         for(int k = 0; k < OUTPUT_QUOTES; NULL)
         {
             float nstr[DIGEST_SIZE] = {0};
-            const int len = uRand(1, DIGEST_SIZE-1);
+            const int len = uRand(1, DIGEST_SIZE);
             for(int i = 0; i < len; i++)
                 nstr[i] = (((double)uRand(0, TABLE_SIZE))/TABLE_SIZE_H)-1.0;
 
@@ -1126,9 +1126,9 @@ int main(int argc, char *argv[])
             uint fv = 0;
             while(fv < 70) //we want random string to fail at-least 70% of the time
             {
-                _lrate     = uRandFloat(0.001, 0.03);
+                _lrate      = uRandFloat(0.001, 0.03);
                 _ldropout   = uRandFloat(0.2, 0.3);
-                _lmomentum = uRandFloat(0.1, 0.9);
+                _lmomentum  = uRandFloat(0.1, 0.9);
                 _lrmsalpha  = uRandFloat(0.2, 0.99);
                 printf("Learning Rate: %f\n", _lrate);
                 printf("Dropout:       %f\n", _ldropout);
