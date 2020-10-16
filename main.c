@@ -953,6 +953,8 @@ void rndGen(const char* file, const float max)
     FILE* f = fopen(file, "w");
     if(f != NULL)
     {
+        uint count = 0;
+        time_t st = time(0);
         for(int k = 0; k < OUTPUT_QUOTES; NULL)
         {
             float nstr[DIGEST_SIZE] = {0};
@@ -978,6 +980,15 @@ void rndGen(const char* file, const float max)
                 fprintf(f, "\n");
                 if(_log == 1)
                     printf("\n");
+            }
+
+            if(time(0) - st > 9) // after 9 seconds
+            {
+                if(count < 900)
+                    return; // if the output rate was less than 100 per second, just quit.
+                
+                count = 0;
+                st = time(0);
             }
         }
 
