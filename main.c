@@ -35,24 +35,11 @@
 
 ///
 
-#define FAST_PREDICTABLE_MODE
-#define DATA_SIZE 333
-#define OUTPUT_QUOTES 33333
-#define FIRSTLAYER_SIZE 128
-#define HIDDEN_SIZE 128
-#define TRAINING_LOOPS 1
-float       _lrate      = 0.03;
-float       _ldropout   = 0.2;
-uint        _loptimiser = 4;
-float       _lmomentum  = 0.1;
-float       _lrmsalpha  = 0.2; //0.99
-const float _lgain      = 1.0;
-
 // #define FAST_PREDICTABLE_MODE
-// #define DATA_SIZE 995
+// #define DATA_SIZE 333
 // #define OUTPUT_QUOTES 33333
-// #define FIRSTLAYER_SIZE 256
-// #define HIDDEN_SIZE 256
+// #define FIRSTLAYER_SIZE 128
+// #define HIDDEN_SIZE 128
 // #define TRAINING_LOOPS 1
 // float       _lrate      = 0.03;
 // float       _ldropout   = 0.2;
@@ -60,6 +47,19 @@ const float _lgain      = 1.0;
 // float       _lmomentum  = 0.1;
 // float       _lrmsalpha  = 0.2; //0.99
 // const float _lgain      = 1.0;
+
+#define FAST_PREDICTABLE_MODE
+#define DATA_SIZE 995
+#define OUTPUT_QUOTES 33333
+#define FIRSTLAYER_SIZE 256
+#define HIDDEN_SIZE 256
+#define TRAINING_LOOPS 1
+float       _lrate      = 0.03;
+float       _ldropout   = 0.2;
+uint        _loptimiser = 4;
+float       _lmomentum  = 0.1;
+float       _lrmsalpha  = 0.2; //0.99
+const float _lgain      = 1.0;
 
 // this is not the vegetarian option
 // #define FAST_PREDICTABLE_MODE
@@ -1055,6 +1055,8 @@ float rmse = 0;
 uint fv = 0;
 void huntBestWeights()
 {
+    rmse = 0;
+    fv = 0;
     uint min = 70;
     const uint max = 95;
     uint highest = 0;
