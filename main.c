@@ -1010,7 +1010,7 @@ float findBest(const uint maxopt)
 
         const time_t st = time(0);
         float mean = 0, low = 9999999, high = 0;
-        for(uint j = 0; j < 6; j++)
+        for(uint j = 0; j < 3; j++)
         {
             resetPerceptrons();
             const float rmse = trainDataset();
@@ -1077,7 +1077,7 @@ void huntBestWeights()
         if(fv <= max && fv > highest)
             highest = fv;
 
-        if(time(0) - st > 180) //If taking longer than 3 mins just settle with the highest logged in that period
+        if(time(0) - st > 540) //If taking longer than 9 mins just settle with the highest logged in that period
         {
             min = highest;
             highest = 0;
