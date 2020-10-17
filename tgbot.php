@@ -30,7 +30,7 @@
             $p = strstr($bm, "Digest size: ");
             $p = substr($p, 13);
             $p = explode("\n", $p, 2)[0];
-            file_get_contents("https://api.telegram.org/bot" . $token . "/sendMessage?chat_id=" . $chatid . "&text=".urlencode($bm . "\nI am " . count($lines) . " / " . $p . " away from re-computing my network.\n"));
+            file_get_contents("https://api.telegram.org/bot" . $token . "/sendMessage?chat_id=" . $chatid . "&text=".urlencode($bm . "\nI am " . number_format(count($lines)) . " / " . $p . " away from re-computing my network.\n"));
             http_response_code(200);
             exit;
         }
