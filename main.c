@@ -48,32 +48,32 @@
 // float       _lrmsalpha  = 0.2; //0.99
 // const float _lgain      = 1.0;
 
-#define FAST_PREDICTABLE_MODE
-#define DATA_SIZE 995
-#define OUTPUT_QUOTES 33333
-#define FIRSTLAYER_SIZE 256
-#define HIDDEN_SIZE 256
-#define TRAINING_LOOPS 1
-float       _lrate      = 0.03;
-float       _ldropout   = 0.2;
-uint        _loptimiser = 4;
-float       _lmomentum  = 0.1;
-float       _lrmsalpha  = 0.2; //0.99
-const float _lgain      = 1.0;
+// #define FAST_PREDICTABLE_MODE
+// #define DATA_SIZE 995
+// #define OUTPUT_QUOTES 33333
+// #define FIRSTLAYER_SIZE 256
+// #define HIDDEN_SIZE 256
+// #define TRAINING_LOOPS 1
+// float       _lrate      = 0.03;
+// float       _ldropout   = 0.2;
+// uint        _loptimiser = 4;
+// float       _lmomentum  = 0.1;
+// float       _lrmsalpha  = 0.2; //0.99
+// const float _lgain      = 1.0;
 
 // this is not the vegetarian option
-// #define FAST_PREDICTABLE_MODE
-// #define DATA_SIZE 3333
-// #define OUTPUT_QUOTES 33333
-// #define FIRSTLAYER_SIZE 512
-// #define HIDDEN_SIZE 1024
-// #define TRAINING_LOOPS 1
-// float       _lrate      = 0.01;
-// float       _ldropout   = 0.3;
-// uint        _loptimiser = 1;
-// float       _lmomentum  = 0.1;
-// float       _lrmsalpha  = 0.2;
-// const float _lgain      = 1.0;
+#define FAST_PREDICTABLE_MODE
+#define DATA_SIZE 3333
+#define OUTPUT_QUOTES 33333
+#define FIRSTLAYER_SIZE 512
+#define HIDDEN_SIZE 1024
+#define TRAINING_LOOPS 1
+float       _lrate      = 0.01;
+float       _ldropout   = 0.3;
+uint        _loptimiser = 1;
+float       _lmomentum  = 0.1;
+float       _lrmsalpha  = 0.2;
+const float _lgain      = 1.0;
 
 //
 
@@ -1051,12 +1051,10 @@ uint hasFailed()
     return failvariance;
 }
 
-float rmse = 0;
-uint fv = 0;
-void huntBestWeights()
+uint huntBestWeights(float* rmse)
 {
-    rmse = 0;
-    fv = 0;
+    *rmse = 0;
+    uint fv = 0;
     uint min = 70;
     const uint max = 95;
     uint highest = 0;
@@ -1070,14 +1068,14 @@ void huntBestWeights()
         _lmomentum  = uRandFloat(0.1, 0.9);
         _lrmsalpha  = uRandFloat(0.2, 0.99);
 
-        rmse = findBest(1);
+        *rmse = findBest(1);
 
         loadWeights();
         fv = hasFailed();
         if(fv <= max && fv > highest)
             highest = fv;
 
-        if(time(0) - st > 540) //If taking longer than 9 mins just settle with the highest logged in that period
+        if(time(0) - st > 540) //If taking longer than 3 mins just settle with the highest logged in that period
         {
             min = highest;
             highest = 0;
@@ -1085,8 +1083,9 @@ void huntBestWeights()
             printf("Taking too long, new target: %u\n", min);
         }
 
-        printf("RMSE: %f / Fail: %u\n", rmse, fv);
+        printf("RMSE: %f / Fail: %u\n", *rmse, fv);
     }
+    return fv; // fail variance
 }
 
 
@@ -1266,9 +1265,10 @@ int main(int argc, char *argv[])
             _lmomentum  = uRandFloat(0.1, 0.9);
             _lrmsalpha  = uRandFloat(0.2, 0.99);
 
-            huntBestWeights();
+            float rmse = 0;
+            uint fv = huntBestWeights(&rmse);
             while(rndGen("out.txt", 0.1) == 0)
-                huntBestWeights();
+                fv = huntBestWeights(&rmse);
 
             printf("Just generated a new dataset.\n");
             timestamp();
