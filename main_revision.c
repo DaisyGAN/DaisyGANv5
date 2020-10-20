@@ -1238,7 +1238,6 @@ int main(int argc, char *argv[])
         if(strcmp(argv[1], "rnd") == 0)
         {
             newSRAND();
-
             printf("> %.2f\n", rndScentence(0));
             exit(0);
         }
@@ -1302,6 +1301,7 @@ int main(int argc, char *argv[])
                 setlocale(LC_NUMERIC, "");
                 fprintf(f, "Trained with an RMSE of %f and Fail Variance of %u (higher is better) on;\n%sTime Taken: %.2f minutes\nDigest size: %'u\n", rmse, fv, asctime(localtime(&ltime)), time_taken, DATA_SIZE);
                 fprintf(f, "L-Rate: %f\n", _lrate);
+                fprintf(f, "Decay: %f\n", _ldecay);
                 fprintf(f, "Dropout: %f\n", _ldropout);
                 fprintf(f, "Momentum: %f\n", _lmomentum);
                 fprintf(f, "Alpha: %f\n\n", _lrmsalpha);
