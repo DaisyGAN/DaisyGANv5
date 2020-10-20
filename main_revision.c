@@ -1125,6 +1125,41 @@ uint huntBestWeights(float* rmse)
     return fv; // fail variance
 }
 
+void rndBest(const uint min)
+{
+    _log = 2;
+    remove("weights.dat");
+    loadDataset("botmsg.txt");
+
+    const time_t st = time(0);
+    uint fv = 0;
+    while(fv < min || fv > 95) //we want random string to fail at-least 70% of the time
+    {
+        newSRAND(); //kill any predictability in the random generator
+
+        _lrate      = uRandFloat(0.001, 0.03);
+        _ldecay     = uRandFloat(0.1, 0.0001);
+        _ldropout   = uRandFloat(0.2, 0.3);
+        _lmomentum  = uRandFloat(0.1, 0.9);
+        _lrmsalpha  = uRandFloat(0.2, 0.99);
+        printf("Learning Rate: %f\n", _lrate);
+        printf("Decay:         %f\n", _ldecay);
+        printf("Dropout:       %f\n", _ldropout);
+        printf("Momentum:      %f\n", _lmomentum);
+        printf("RMSProp Alpha: %f\n", _lrmsalpha);
+
+        findBest(4);
+
+        loadWeights();
+        fv = hasFailed();
+        printf("Fail Variance: %u\n\n", fv);
+    }
+
+    const double time_taken = ((double)(time(0)-st)) / 60.0;
+    printf("Time Taken: %.2f mins\n\n", time_taken);
+    exit(0);
+}
+
 
 //*************************************
 // program entry point
@@ -1161,36 +1196,7 @@ int main(int argc, char *argv[])
         }
 
         if(strcmp(argv[1], "rndbest") == 0)
-        {
-            _log = 2;
-            remove("weights.dat");
-            loadDataset("botmsg.txt");
-
-            uint fv = 0;
-            const uint min = atoi(argv[2]);
-            while(fv < min) //we want random string to fail at-least 70% of the time
-            {
-                newSRAND(); //kill any predictability in the random generator
-
-                _lrate      = uRandFloat(0.001, 0.03);
-                _ldecay     = uRandFloat(0.1, 0.0001);
-                _ldropout   = uRandFloat(0.2, 0.3);
-                _lmomentum  = uRandFloat(0.1, 0.9);
-                _lrmsalpha  = uRandFloat(0.2, 0.99);
-                printf("Learning Rate: %f\n", _lrate);
-                printf("Decay:         %f\n", _ldecay);
-                printf("Dropout:       %f\n", _ldropout);
-                printf("Momentum:      %f\n", _lmomentum);
-                printf("RMSProp Alpha: %f\n", _lrmsalpha);
-
-                findBest(4);
-
-                loadWeights();
-                fv = hasFailed();
-                printf("Fail Variance: %u\n\n", fv);
-            }
-            exit(0);
-        }
+            rndBest(atoi(argv[2]));
     }
 
     if(argc == 2)
@@ -1206,35 +1212,7 @@ int main(int argc, char *argv[])
         }
 
         if(strcmp(argv[1], "rndbest") == 0)
-        {
-            _log = 2;
-            remove("weights.dat");
-            loadDataset("botmsg.txt");
-
-            newSRAND(); //kill any predictability in the random generator
-
-            uint fv = 0;
-            while(fv < 70) //we want random string to fail at-least 70% of the time
-            {
-                _lrate      = uRandFloat(0.001, 0.03);
-                _ldecay     = uRandFloat(0.1, 0.0001);
-                _ldropout   = uRandFloat(0.2, 0.3);
-                _lmomentum  = uRandFloat(0.1, 0.9);
-                _lrmsalpha  = uRandFloat(0.2, 0.99);
-                printf("Learning Rate: %f\n", _lrate);
-                printf("Decay:         %f\n", _ldecay);
-                printf("Dropout:       %f\n", _ldropout);
-                printf("Momentum:      %f\n", _lmomentum);
-                printf("RMSProp Alpha: %f\n", _lrmsalpha);
-
-                findBest(4);
-
-                loadWeights();
-                fv = hasFailed();
-                printf(":::: Fail Variance: %u\n\n", fv);
-            }
-            exit(0);
-        }
+            rndBest(70);
 
         if(strcmp(argv[1], "best") == 0)
         {
