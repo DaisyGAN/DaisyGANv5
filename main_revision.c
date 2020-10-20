@@ -1173,10 +1173,12 @@ int main(int argc, char *argv[])
                 newSRAND(); //kill any predictability in the random generator
 
                 _lrate      = uRandFloat(0.001, 0.03);
+                _ldecay     = uRandFloat(0.1, 0.0001);
                 _ldropout   = uRandFloat(0.2, 0.3);
                 _lmomentum  = uRandFloat(0.1, 0.9);
                 _lrmsalpha  = uRandFloat(0.2, 0.99);
                 printf("Learning Rate: %f\n", _lrate);
+                printf("Decay:         %f\n", _ldecay);
                 printf("Dropout:       %f\n", _ldropout);
                 printf("Momentum:      %f\n", _lmomentum);
                 printf("RMSProp Alpha: %f\n", _lrmsalpha);
@@ -1215,10 +1217,12 @@ int main(int argc, char *argv[])
             while(fv < 70) //we want random string to fail at-least 70% of the time
             {
                 _lrate      = uRandFloat(0.001, 0.03);
+                _ldecay     = uRandFloat(0.1, 0.0001);
                 _ldropout   = uRandFloat(0.2, 0.3);
                 _lmomentum  = uRandFloat(0.1, 0.9);
                 _lrmsalpha  = uRandFloat(0.2, 0.99);
                 printf("Learning Rate: %f\n", _lrate);
+                printf("Decay:         %f\n", _ldecay);
                 printf("Dropout:       %f\n", _ldropout);
                 printf("Momentum:      %f\n", _lmomentum);
                 printf("RMSProp Alpha: %f\n", _lrmsalpha);
@@ -1298,6 +1302,7 @@ int main(int argc, char *argv[])
             clearFile("botmsg.txt");
 
             _lrate      = uRandFloat(0.001, 0.03);
+            _ldecay     = uRandFloat(0.1, 0.0001);
             _ldropout   = uRandFloat(0.2, 0.3);
             _lmomentum  = uRandFloat(0.1, 0.9);
             _lrmsalpha  = uRandFloat(0.2, 0.99);
