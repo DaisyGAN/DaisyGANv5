@@ -1367,7 +1367,7 @@ int main(int argc, char *argv[])
             while(fread(&fv, 1, sizeof(float), f) != sizeof(float))
                 usleep(1000);
             fclose(f);
-            printf("Current weights have a fail variance of %.2f.\n\n", fv);
+            printf("Current weights have a fail variance of %f.\n\n", fv);
             exit(0);
         }
 
