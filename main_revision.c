@@ -1151,7 +1151,7 @@ float hasFailed(const uint resolution)
     if(resolution == 1)
         return failvariance;
     else
-        return failvariance / resolution;
+        return (double)failvariance / (double)resolution;
 }
 
 uint huntBestWeights(float* rmse)
