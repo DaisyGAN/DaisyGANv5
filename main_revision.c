@@ -218,7 +218,7 @@ void saveWeights()
 
         if(flock(fileno(f), LOCK_UN) == -1)
             printf("ERROR flock(LOCK_UN) in saveWeights()\n");
-            
+
         fclose(f);
     }
 }
@@ -290,18 +290,6 @@ void loadWeights()
         sleep(333);
 
     fclose(f);
-
-    f = fopen("gs.dat", "r");
-    while(f == NULL)
-    {
-        f = fopen("gs.dat", "r");
-        usleep(1000); //1ms
-    }
-    uint fv = 0;
-    while(fread(&fv, 1, sizeof(uint), f) != sizeof(uint))
-        usleep(1000);
-    fclose(f);
-    printf("loaded weights with a fail variance of %u\n\n", fv);
 }
 
 float qRandFloat(const float min, const float max)
@@ -1151,16 +1139,19 @@ uint rndGen(const char* file, const float max)
     return 1;
 }
 
-uint hasFailed()
+uint hasFailed(const uint resolution)
 {
     int failvariance = 0;
-    for(int i = 0; i < 1000; i++)
+    for(int i = 0; i < 100*resolution; i++)
     {
         const float r = rndScentence(1);
         if(r < 50)
             failvariance++;
     }
-    return failvariance / 10;
+    if(resolution == 1)
+        return failvariance;
+    else
+        return failvariance / resolution;
 }
 
 uint huntBestWeights(float* rmse)
@@ -1184,7 +1175,7 @@ uint huntBestWeights(float* rmse)
         resetPerceptrons();
         *rmse = trainDataset(0, DATA_SIZE * DATA_TRAIN_PERCENT);
 
-        fv = hasFailed();
+        fv = hasFailed(1);
         if(fv <= max && fv > highest)
             highest = fv;
 
@@ -1220,64 +1211,67 @@ void rndBest()
     printf("Start fail variance: %u\n\n", min);
 
     // find a new lowest fv target
-    const time_t st = time(0);
-    uint fv = 0;
-    while(fv < min || fv > 99) //we want random string to fail at-least 70% of the time
+    while(1)
     {
-        newSRAND(); //kill any predictability in the random generator
+        const time_t st = time(0);
+        uint fv = 0;
+        while(fv < min || fv > 99) //we want random string to fail at-least 70% of the time
+        {
+            newSRAND(); //kill any predictability in the random generator
 
-        _loptimiser = uRand(0, 4);
-        _lrate      = uRandFloat(0.001, 0.03);
-        //_ldecay     = uRandFloat(0.1, 0.0001);
-        _ldropout   = uRandFloat(0.2, 0.3);
-        if(_loptimiser == 1 || _loptimiser == 2)
-            _lmomentum  = uRandFloat(0.1, 0.9);
-        if(_loptimiser == 4)
-            _lrmsalpha  = uRandFloat(0.2, 0.99);
-        printf("Optimiser:     %u\n", _loptimiser);
-        printf("Learning Rate: %f\n", _lrate);
-        //printf("Decay:         %f\n", _ldecay);
-        printf("Dropout:       %f\n", _ldropout);
-        if(_loptimiser == 1 || _loptimiser == 2)
-            printf("Momentum:      %f\n", _lmomentum);
-        else if(_loptimiser == 4)
-            printf("RMSProp Alpha: %f\n", _lrmsalpha);
+            _loptimiser = uRand(0, 4);
+            _lrate      = uRandFloat(0.001, 0.03);
+            //_ldecay     = uRandFloat(0.1, 0.0001);
+            _ldropout   = uRandFloat(0.2, 0.3);
+            if(_loptimiser == 1 || _loptimiser == 2)
+                _lmomentum  = uRandFloat(0.1, 0.9);
+            if(_loptimiser == 4)
+                _lrmsalpha  = uRandFloat(0.2, 0.99);
+            printf("Optimiser:     %u\n", _loptimiser);
+            printf("Learning Rate: %f\n", _lrate);
+            //printf("Decay:         %f\n", _ldecay);
+            printf("Dropout:       %f\n", _ldropout);
+            if(_loptimiser == 1 || _loptimiser == 2)
+                printf("Momentum:      %f\n", _lmomentum);
+            else if(_loptimiser == 4)
+                printf("RMSProp Alpha: %f\n", _lrmsalpha);
 
-        printf("~\n");
+            printf("~\n");
 
-        resetPerceptrons();
-        trainDataset(0, DATA_SIZE * DATA_TRAIN_PERCENT);
+            resetPerceptrons();
+            trainDataset(0, DATA_SIZE * DATA_TRAIN_PERCENT);
 
-        fv = hasFailed();
-        printf("Fail Variance: %u\n-----\n", fv);
-    }
+            fv = hasFailed(100);
+            printf("Fail Variance: %u\n-----\n", fv);
+        }
 
-    // this allows multiple processes to compete on the best weights
-    f = fopen("gs.dat", "r+");
-    while(f == NULL)
-    {
+        // this allows multiple processes to compete on the best weights
         f = fopen("gs.dat", "r+");
-        usleep(1000); //1ms
-    }
-    while(fread(&min, 1, sizeof(uint), f) != sizeof(uint))
-        usleep(1000);
-    if(min < fv)
-    {
-        while(flock(fileno(f), LOCK_EX) == -1)
+        while(f == NULL)
+        {
+            f = fopen("gs.dat", "r+");
+            usleep(1000); //1ms
+        }
+        while(fread(&min, 1, sizeof(uint), f) != sizeof(uint))
             usleep(1000);
-        while(fseek(f, 0, SEEK_SET) < 0)
-            usleep(1000);
-        while(fwrite(&fv, 1, sizeof(uint), f) != sizeof(uint))
-            usleep(1000);
-        flock(fileno(f), LOCK_UN);
+        if(min < fv)
+        {
+            while(flock(fileno(f), LOCK_EX) == -1)
+                usleep(1000);
+            while(fseek(f, 0, SEEK_SET) < 0)
+                usleep(1000);
+            while(fwrite(&fv, 1, sizeof(uint), f) != sizeof(uint))
+                usleep(1000);
+            flock(fileno(f), LOCK_UN);
 
-        saveWeights();
-    }
-    fclose(f);
+            saveWeights();
+        }
+        fclose(f);
 
-    // done    
-    const double time_taken = ((double)(time(0)-st)) / 60.0;
-    printf("Time Taken: %.2f mins\n\n", time_taken);
+        // done    
+        const double time_taken = ((double)(time(0)-st)) / 60.0;
+        printf("Time Taken: %.2f mins\n\n", time_taken);
+    }
     exit(0);
 }
 
@@ -1358,6 +1352,22 @@ int main(int argc, char *argv[])
         {
             resetState(70);
             printf("Weights and multi-process descriptor reset.\n");
+            exit(0);
+        }
+
+        if(strcmp(argv[1], "check") == 0)
+        {
+            FILE* f = fopen("gs.dat", "r");
+            while(f == NULL)
+            {
+                f = fopen("gs.dat", "r");
+                usleep(1000); //1ms
+            }
+            uint fv = 0;
+            while(fread(&fv, 1, sizeof(uint), f) != sizeof(uint))
+                usleep(1000);
+            fclose(f);
+            printf("Current weights have a fail variance of %u.\n\n", fv);
             exit(0);
         }
 
