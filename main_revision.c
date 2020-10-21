@@ -6,6 +6,8 @@
     DaisyGANv5
 
     Technically not a generative adversarial network anymore.
+
+    rndBest() now allows a multi-process model
 */
 
 #pragma GCC diagnostic ignored "-Wunused-result"
@@ -22,6 +24,7 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <locale.h>
+#include <sys/file.h>
 
 #define uint uint32_t
 #define NO_LEARN -2
@@ -36,6 +39,7 @@
 ///
 
 // #define FAST_PREDICTABLE_MODE
+// #define DATA_TRAIN_PERCENT 0.7
 // #define DATA_SIZE 2411
 // #define OUTPUT_QUOTES 33333
 // #define FIRSTLAYER_SIZE 128
@@ -51,6 +55,7 @@
 // const float _lgain      = 1.0;
 
 // #define FAST_PREDICTABLE_MODE
+// #define DATA_TRAIN_PERCENT 0.7
 // #define DATA_SIZE 2411
 // #define OUTPUT_QUOTES 33333
 // #define FIRSTLAYER_SIZE 256
@@ -59,7 +64,7 @@
 // float       _lrate      = 0.03;
 // float       _ldecay     = 0.0005;
 // float       _ldropout   = 0.2;
-// uint        _lbatches   = 3;
+// uint        _lbatches   = 8;
 // uint        _loptimiser = 4;
 // float       _lmomentum  = 0.1;
 // float       _lrmsalpha  = 0.2; //0.99
@@ -67,6 +72,7 @@
 
 // this is not the vegetarian option
 #define FAST_PREDICTABLE_MODE
+#define DATA_TRAIN_PERCENT 0.7
 #define DATA_SIZE 2411
 #define OUTPUT_QUOTES 33333
 #define FIRSTLAYER_SIZE 512
@@ -150,6 +156,8 @@ void saveWeights()
     FILE* f = fopen("weights.dat", "w");
     if(f != NULL)
     {
+        flock(fileno(f), LOCK_EX);
+
         for(uint i = 0; i < FIRSTLAYER_SIZE; i++)
         {
             if(fwrite(&d1[i].data[0], 1, d1[i].weights*sizeof(float), f) != d1[i].weights*sizeof(float))
@@ -207,6 +215,7 @@ void saveWeights()
         if(fwrite(&d4.bias_momentum, 1, sizeof(float), f) != sizeof(float))
             printf("ERROR fwrite() in saveWeights() #1m\n");
 
+        flock(fileno(f), LOCK_UN);
         fclose(f);
     }
 }
@@ -278,6 +287,18 @@ void loadWeights()
         sleep(333);
 
     fclose(f);
+
+    f = fopen("gs.dat", "r");
+    while(f == NULL)
+    {
+        f = fopen("gs.dat", "r");
+        usleep(1000); //1ms
+    }
+    uint fv = 0;
+    while(fread(&fv, 1, sizeof(uint), f) != sizeof(uint))
+        usleep(1000);
+    fclose(f);
+    printf("loaded weights with a fail variance of %u\n\n", fv);
 }
 
 float qRandFloat(const float min, const float max)
@@ -701,11 +722,11 @@ float Optional(const float input, const float error, float* momentum)
     if(_loptimiser == 1)
         return Momentum(input, error, momentum);
     else if(_loptimiser == 2)
-        return ADAGrad(input, error, momentum);
-    else if(_loptimiser == 3)
-        return RMSProp(input, error, momentum);
-    else if(_loptimiser == 4)
         return Nesterov(input, error, momentum);
+    else if(_loptimiser == 3)
+        return ADAGrad(input, error, momentum);
+    else if(_loptimiser == 4)
+        return RMSProp(input, error, momentum);
     
     return SGD(input, error);
 }
@@ -993,7 +1014,7 @@ float trainDataset(const uint start, const uint end)
             }
         }
 
-        rmse = rmseDiscriminator(DATA_SIZE * 0.7, DATA_SIZE);
+        rmse = rmseDiscriminator(DATA_SIZE * DATA_TRAIN_PERCENT, DATA_SIZE);
         if(_log == 1 || _log == 2)
             printf("RMSE: %f :: %lus\n", rmse, time(0)-st);
     }
@@ -1127,56 +1148,16 @@ uint rndGen(const char* file, const float max)
     return 1;
 }
 
-float findBest(const uint maxopt)
-{
-    float lowest_low = 999999999;
-    for(uint i = 0; i <= maxopt; i++)
-    {
-        _loptimiser = i;
-        if(_log == 2)
-            printf("\nOptimiser: %u\n", _loptimiser);
-
-        const time_t st = time(0);
-        float mean = 0, low = 9999999, high = 0;
-        for(uint j = 0; j < 3; j++)
-        {
-            resetPerceptrons();
-            const float rmse = trainDataset(0, DATA_SIZE * 0.7);
-            mean += rmse;
-            if(rmse < low)
-                low = rmse;
-            if(rmse > high)
-                high = rmse;
-            if(rmse > 0 && rmse < lowest_low)
-            {
-                lowest_low = rmse;
-                saveWeights();
-            }
-        }
-        if(_log == 2)
-        {
-            printf("Lo  RMSE:   %f\n", low);
-            printf("Hi  RMSE:   %f\n", high);
-            printf("Avg RMSE:   ~ %f\n", mean / 6);
-            printf("RMSE Delta: %f\n", high-low);
-            printf("Time Taken: %.2f mins\n", ((double)(time(0)-st)) / 60.0);
-        }
-    }
-    if(_log == 2)
-        printf("\nThe dataset with an RMSE of %f was saved to weights.dat\n\n", lowest_low);
-    return lowest_low;
-}
-
 uint hasFailed()
 {
     int failvariance = 0;
-    for(int i = 0; i < 100; i++)
+    for(int i = 0; i < 1000; i++)
     {
         const float r = rndScentence(1);
-        if(r < 50)
+        if(r < 500)
             failvariance++;
     }
-    return failvariance;
+    return failvariance / 10;
 }
 
 uint huntBestWeights(float* rmse)
@@ -1191,14 +1172,15 @@ uint huntBestWeights(float* rmse)
     {
         newSRAND(); //kill any predictability in the random generator
 
+        _loptimiser = uRand(0, 1);
         _lrate      = uRandFloat(0.001, 0.03);
         _ldropout   = uRandFloat(0.2, 0.3);
         _lmomentum  = uRandFloat(0.1, 0.9);
         _lrmsalpha  = uRandFloat(0.2, 0.99);
 
-        *rmse = findBest(1);
+        resetPerceptrons();
+        *rmse = trainDataset(0, DATA_SIZE * DATA_TRAIN_PERCENT);
 
-        loadWeights();
         fv = hasFailed();
         if(fv <= max && fv > highest)
             highest = fv;
@@ -1216,36 +1198,81 @@ uint huntBestWeights(float* rmse)
     return fv; // fail variance
 }
 
-void rndBest(const uint min)
+void rndBest()
 {
     _log = 2;
-    remove("weights.dat");
     loadDataset("botmsg.txt");
 
+    // load the last lowest fv target
+    FILE* f = fopen("gs.dat", "r");
+    while(f == NULL)
+    {
+        f = fopen("gs.dat", "r");
+        usleep(1000); //1ms
+    }
+    uint min = 0;
+    while(fread(&min, 1, sizeof(uint), f) != sizeof(uint))
+        usleep(1000);
+    fclose(f);
+    printf("Start fail variance: %u\n\n", min);
+
+    // find a new lowest fv target
     const time_t st = time(0);
     uint fv = 0;
-    while(fv < min || fv > 95) //we want random string to fail at-least 70% of the time
+    while(fv < min || fv > 99) //we want random string to fail at-least 70% of the time
     {
         newSRAND(); //kill any predictability in the random generator
 
+        _loptimiser = uRand(0, 4);
         _lrate      = uRandFloat(0.001, 0.03);
-        _ldecay     = uRandFloat(0.1, 0.0001);
+        //_ldecay     = uRandFloat(0.1, 0.0001);
         _ldropout   = uRandFloat(0.2, 0.3);
-        _lmomentum  = uRandFloat(0.1, 0.9);
-        _lrmsalpha  = uRandFloat(0.2, 0.99);
+        if(_loptimiser == 1 || _loptimiser == 2)
+            _lmomentum  = uRandFloat(0.1, 0.9);
+        if(_loptimiser == 4)
+            _lrmsalpha  = uRandFloat(0.2, 0.99);
+        printf("Optimiser:     %u\n", _loptimiser);
         printf("Learning Rate: %f\n", _lrate);
-        printf("Decay:         %f\n", _ldecay);
+        //printf("Decay:         %f\n", _ldecay);
         printf("Dropout:       %f\n", _ldropout);
-        printf("Momentum:      %f\n", _lmomentum);
-        printf("RMSProp Alpha: %f\n", _lrmsalpha);
+        if(_loptimiser == 1 || _loptimiser == 2)
+            printf("Momentum:      %f\n", _lmomentum);
+        else if(_loptimiser == 4)
+            printf("RMSProp Alpha: %f\n", _lrmsalpha);
 
-        findBest(4);
+        printf("~\n");
 
-        loadWeights();
+        resetPerceptrons();
+        trainDataset(0, DATA_SIZE * DATA_TRAIN_PERCENT);
+
         fv = hasFailed();
-        printf("Fail Variance: %u\n\n", fv);
+        printf("Fail Variance: %u\n-----\n", fv);
     }
 
+    // this allows multiple processes to compete on the best weights
+    f = fopen("gs.dat", "r+");
+    while(f == NULL)
+    {
+        f = fopen("gs.dat", "r+");
+        usleep(1000); //1ms
+    }
+    uint lfv = 0;
+    while(fread(&lfv, 1, sizeof(uint), f) != sizeof(uint))
+        usleep(1000);
+    if(lfv < fv)
+    {
+        while(flock(fileno(f), LOCK_EX) == -1)
+            usleep(1000);
+        rewind(f); // might fail
+        while(fwrite(&fv, 1, sizeof(uint), f) != sizeof(uint))
+            usleep(1000);
+        flock(fileno(f), LOCK_UN);
+
+        saveWeights();
+    }
+    fclose(f);
+
+    // done    
     const double time_taken = ((double)(time(0)-st)) / 60.0;
     printf("Time Taken: %.2f mins\n\n", time_taken);
     exit(0);
@@ -1286,8 +1313,24 @@ int main(int argc, char *argv[])
             exit(0);
         }
 
-        if(strcmp(argv[1], "rndbest") == 0)
-            rndBest(atoi(argv[2]));
+        if(strcmp(argv[1], "reset") == 0)
+        {
+            remove("weights.dat");
+            
+            FILE* f = fopen("gs.dat", "w");
+            while(f == NULL)
+            {
+                f = fopen("gs.dat", "w");
+                usleep(1000);
+            }
+            uint fv = atoi(argv[2]);
+            while(fwrite(&fv, 1, sizeof(uint), f) != sizeof(uint))
+                usleep(1000);
+            fclose(f);
+
+            printf("Weights and multi-process descriptor reset.\n");
+            exit(0);
+        }
     }
 
     if(argc == 2)
@@ -1302,26 +1345,31 @@ int main(int argc, char *argv[])
             exit(0);
         }
 
-        if(strcmp(argv[1], "rndbest") == 0)
-            rndBest(70);
-
         if(strcmp(argv[1], "best") == 0)
+            rndBest();
+        
+        if(strcmp(argv[1], "reset") == 0)
         {
-            newSRAND(); //kill any predictability in the random generator
-
-            _log = 2;
             remove("weights.dat");
-            loadDataset("botmsg.txt");
-            findBest(4);
-
-            loadWeights();
-            const uint fv = hasFailed();
-            printf("Fail Variance: %u\n\n", fv);
             
+            FILE* f = fopen("gs.dat", "w");
+            while(f == NULL)
+            {
+                f = fopen("gs.dat", "w");
+                usleep(1000);
+            }
+            uint fv = 70;
+            while(fwrite(&fv, 1, sizeof(uint), f) != sizeof(uint))
+                usleep(1000);
+            fclose(f);
+
+            printf("Weights and multi-process descriptor reset.\n");
             exit(0);
         }
 
+        ///////////////////////////
         loadWeights();
+        ///////////////////////////
 
         if(strcmp(argv[1], "ask") == 0)
             consoleAsk();
@@ -1370,6 +1418,7 @@ int main(int argc, char *argv[])
             loadDataset("botmsg.txt");
             clearFile("botmsg.txt");
 
+            _loptimiser = uRand(0, 4);
             _lrate      = uRandFloat(0.001, 0.03);
             _ldecay     = uRandFloat(0.1, 0.0001);
             _ldropout   = uRandFloat(0.2, 0.3);
@@ -1381,6 +1430,7 @@ int main(int argc, char *argv[])
             while(rndGen("out.txt", 0.2) == 0)
                 fv = huntBestWeights(&rmse);
 
+            saveWeights();
             printf("Just generated a new dataset.\n");
             timestamp();
             const double time_taken = ((double)(time(0)-st)) / 60.0;
