@@ -40,7 +40,7 @@
 
 // #define FAST_PREDICTABLE_MODE
 // #define DATA_TRAIN_PERCENT 0.7
-// #define DATA_SIZE 3045
+// #define DATA_SIZE 110927
 // #define OUTPUT_QUOTES 33333
 // #define FIRSTLAYER_SIZE 128
 // #define HIDDEN_SIZE 128
@@ -54,38 +54,38 @@
 // float       _lrmsalpha  = 0.2; //0.99
 // const float _lgain      = 1.0;
 
-// #define FAST_PREDICTABLE_MODE
-// #define DATA_TRAIN_PERCENT 0.7
-// #define DATA_SIZE 3045
-// #define OUTPUT_QUOTES 33333
-// #define FIRSTLAYER_SIZE 256
-// #define HIDDEN_SIZE 256
-// #define TRAINING_LOOPS 1
-// float       _lrate      = 0.03;
-// float       _ldecay     = 0.0005;
-// float       _ldropout   = 0.2;
-// uint        _lbatches   = 8;
-// uint        _loptimiser = 4;
-// float       _lmomentum  = 0.1;
-// float       _lrmsalpha  = 0.2; //0.99
-// const float _lgain      = 1.0;
-
-// this is not the vegetarian option
 #define FAST_PREDICTABLE_MODE
 #define DATA_TRAIN_PERCENT 0.7
-#define DATA_SIZE 3045
+#define DATA_SIZE 110927
 #define OUTPUT_QUOTES 33333
-#define FIRSTLAYER_SIZE 512
-#define HIDDEN_SIZE 1024
+#define FIRSTLAYER_SIZE 256
+#define HIDDEN_SIZE 256
 #define TRAINING_LOOPS 1
-float       _lrate      = 0.01;
+float       _lrate      = 0.03;
 float       _ldecay     = 0.0005;
-float       _ldropout   = 0.3;
-uint        _lbatches   = 16;
-uint        _loptimiser = 1;
+float       _ldropout   = 0.2;
+uint        _lbatches   = 8;
+uint        _loptimiser = 4;
 float       _lmomentum  = 0.1;
-float       _lrmsalpha  = 0.2;
+float       _lrmsalpha  = 0.2; //0.99
 const float _lgain      = 1.0;
+
+// this is not the vegetarian option
+// #define FAST_PREDICTABLE_MODE
+// #define DATA_TRAIN_PERCENT 0.7
+// #define DATA_SIZE 110927
+// #define OUTPUT_QUOTES 33333
+// #define FIRSTLAYER_SIZE 512
+// #define HIDDEN_SIZE 1024
+// #define TRAINING_LOOPS 1
+// float       _lrate      = 0.01;
+// float       _ldecay     = 0.0005;
+// float       _ldropout   = 0.3;
+// uint        _lbatches   = 16;
+// uint        _loptimiser = 1;
+// float       _lmomentum  = 0.1;
+// float       _lrmsalpha  = 0.2;
+// const float _lgain      = 1.0;
 
 //
 
@@ -942,6 +942,8 @@ float rmseDiscriminator(const uint start, const uint end)
 
 void loadDataset(const char* file)
 {
+    const time_t st = time(0);
+
     // read training data [every input is truncated to 256 characters]
     FILE* f = fopen(file, "r");
     if(f)
@@ -971,6 +973,7 @@ void loadDataset(const char* file)
     }
 
     printf("Training Data Loaded.\n");
+    printf("Time Taken: %.2f mins\n\n", ((double)(time(0)-st)) / 60.0);
 }
 
 float trainDataset(const uint start, const uint end)
@@ -1246,7 +1249,7 @@ void rndBest()
             trainDataset(0, DATA_SIZE * DATA_TRAIN_PERCENT);
             
             const time_t st2 = time(0);
-            fv = hasFailed(100);
+            fv = hasFailed(1000);
             printf("Fail Variance: %.2f :: %lus\n-----\n", fv, time(0)-st2);
         }
 
@@ -1377,7 +1380,7 @@ int main(int argc, char *argv[])
             while(fread(&fv, 1, sizeof(float), f) != sizeof(float))
                 usleep(1000);
             fclose(f);
-            printf("Current weights have a fail variance of %f.\n\n", fv);
+            printf("Current weights have a fail variance of %f.\n", fv);
             exit(0);
         }
 
