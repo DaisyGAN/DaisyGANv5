@@ -44,6 +44,7 @@
 float       _lrate      = 0.03;
 float       _ldecay     = 0.0005;
 float       _ldropout   = 0.2;
+uint        _lbatches   = 1;
 uint        _loptimiser = 4;
 float       _lmomentum  = 0.1;
 float       _lrmsalpha  = 0.2; //0.99
@@ -58,6 +59,7 @@ const float _lgain      = 1.0;
 // float       _lrate      = 0.03;
 // float       _ldecay     = 0.0005;
 // float       _ldropout   = 0.2;
+// uint        _lbatches   = 3;
 // uint        _loptimiser = 4;
 // float       _lmomentum  = 0.1;
 // float       _lrmsalpha  = 0.2; //0.99
@@ -73,6 +75,7 @@ const float _lgain      = 1.0;
 // float       _lrate      = 0.01;
 // float       _ldecay     = 0.0005;
 // float       _ldropout   = 0.3;
+// uint        _lbatches   = 180;
 // uint        _loptimiser = 1;
 // float       _lmomentum  = 0.1;
 // float       _lrmsalpha  = 0.2;
@@ -501,7 +504,45 @@ void resetPerceptrons()
 // https://en.wikipedia.org/wiki/Activation_function
 // https://www.analyticsvidhya.com/blog/2020/01/fundamentals-deep-learning-activation-functions-when-to-use-them/
 // https://adl1995.github.io/an-overview-of-activation-functions-used-in-neural-networks.html
+// https://stackoverflow.com/questions/42537957/fast-accurate-atan-arctan-approximation-algorithm
+// https://varietyofsound.wordpress.com/2011/02/14/efficient-tanh-computation-using-lamberts-continued-fraction/
 //*************************************
+
+float fast_tanh(float x)
+{
+    float x2 = x * x;
+    float a = x * (135135.0f + x2 * (17325.0f + x2 * (378.0f + x2)));
+    float b = 135135.0f + x2 * (62370.0f + x2 * (3150.0f + x2 * 28.0f));
+    return a / b;
+}
+
+float tanh_c3(float v)
+{
+    const float c1 = 0.03138777F;
+    const float c2 = 0.276281267F;
+    const float c_log2f = 1.442695022F;
+    v *= c_log2f;
+    int intPart = (int)v;
+    float x = (v - intPart);
+    float xx = x * x;
+    float v1 = c_log2f + c2 * xx;
+    float v2 = x + xx * c1 * x;
+    float v3 = (v2 + v1);
+    *((int*)&v3) += intPart << 24;
+    float v4 = v2 - v1;
+    return (v3 + v4) / (v3 - v4);
+}
+
+float fatan(float x)
+{
+    return 0.78539816339*x - x*(fabs(x) - 1)*(0.2447 + 0.0663*fabs(x));
+}
+
+float fatan2(float x)
+{
+    float xx = x * x;
+    return ((0.0776509570923569*xx + -0.287434475393028)*xx + 0.995181682)*x;
+}
 
 static inline float bipolarSigmoid(float x)
 {
@@ -520,7 +561,7 @@ static inline float arctan(float x)
 
 static inline float lecun_tanh(float x)
 {
-    return 1.7159 * atan(0.666666667 * x);
+    return 1.7159 * tanh(0.666666667 * x);
 }
 
 static inline float sigmoid(float x)
@@ -673,6 +714,12 @@ float Optional(const float input, const float error, float* momentum)
 //*************************************
 // network training functions
 //*************************************
+float o1[FIRSTLAYER_SIZE] = {0};
+float o2[HIDDEN_SIZE] = {0};
+float o3[HIDDEN_SIZE] = {0};
+float o4 = 0;
+float error = 0;
+uint batches = 0;
 
 float doDiscriminator(const float* input, const float eo)
 {
@@ -681,24 +728,24 @@ float doDiscriminator(const float* input, const float eo)
 **************************************/
 
     // layer one, inputs (fc)
-    float o1[FIRSTLAYER_SIZE];
+    float o1f[FIRSTLAYER_SIZE];
     for(int i = 0; i < FIRSTLAYER_SIZE; i++)
-        o1[i] = lecun_tanh(doPerceptron(input, &d1[i]));
+        o1f[i] = lecun_tanh(doPerceptron(input, &d1[i]));
 
     // layer two, hidden (fc expansion)
-    float o2[HIDDEN_SIZE];
+    float o2f[HIDDEN_SIZE];
     for(int i = 0; i < HIDDEN_SIZE; i++)
-        o2[i] = lecun_tanh(doPerceptron(&o1[0], &d2[i]));
+        o2f[i] = lecun_tanh(doPerceptron(&o1f[0], &d2[i]));
 
     // layer three, hidden (fc)
-    float o3[HIDDEN_SIZE];
-    
+    float o3f[HIDDEN_SIZE];
     for(int i = 0; i < HIDDEN_SIZE; i++)
-        o3[i] = lecun_tanh(doPerceptron(&o2[0], &d3[i]));
+        o3f[i] = lecun_tanh(doPerceptron(&o2f[0], &d3[i]));
 
     // layer four, output (fc compression)
-    const float output = sigmoid(lecun_tanh(doPerceptron(&o3[0], &d4)));
+    const float output = sigmoid(lecun_tanh(doPerceptron(&o3f[0], &d4)));
 
+    // if it's just forward pass, return result.
     if(eo == NO_LEARN)
         return output;
 
@@ -706,8 +753,48 @@ float doDiscriminator(const float* input, const float eo)
     Backward Prop Error
 **************************************/
 
-    // layer 4
-    const float error = eo - output;
+    // reset accumulators if batches was reset
+    if(batches == 0)
+    {
+        memset(&o1, 0x00, FIRSTLAYER_SIZE * sizeof(float));
+        memset(&o2, 0x00, HIDDEN_SIZE * sizeof(float));
+        memset(&o3, 0x00, HIDDEN_SIZE * sizeof(float));
+        o4 = 0;
+        error = 0;
+    }
+
+    // batch accumulation of outputs
+    o4 += output;
+    for(int i = 0; i < FIRSTLAYER_SIZE; i++)
+        o1[i] += o1f[i];
+
+    for(int i = 0; i < HIDDEN_SIZE; i++)
+        o2[i] += o2f[i];
+
+    for(int i = 0; i < HIDDEN_SIZE; i++)
+        o3[i] += o3f[i];
+
+    // accumulate output error
+    error += eo - output;
+
+    // batching controller
+    batches++;
+    if(batches < _lbatches)
+    {
+        return output;
+    }
+    else
+    {
+        error /= _lbatches;
+        o4 /= _lbatches;
+        for(int i = 0; i < FIRSTLAYER_SIZE; i++)
+            o1[i] /= _lbatches;
+        for(int i = 0; i < HIDDEN_SIZE; i++)
+            o2[i] /= _lbatches;
+        for(int i = 0; i < HIDDEN_SIZE; i++)
+            o3[i] /= _lbatches;
+        batches = 0;
+    }
 
     if(error == 0) // superflous will not likely ever happen
         return output;
@@ -716,7 +803,7 @@ float doDiscriminator(const float* input, const float eo)
     float e2[HIDDEN_SIZE];
     float e3[HIDDEN_SIZE];
 
-    float e4 = _lgain * output * (1-output) * error;
+    float e4 = _lgain * o4 * (1-o4) * error;
 
     // layer 3 (output)
     float ler = 0;
@@ -771,8 +858,8 @@ float doDiscriminator(const float* input, const float eo)
 
         for(int j = 0; j < d1[i].weights; j++)
         {
-            if(_ldecay != 0)
-                d1[i].data[j] = decayL2(d1[i].data[j], _ldecay);
+            // if(_ldecay != 0)
+            //     d1[i].data[j] = decayL2(d1[i].data[j], _ldecay);
 
             d1[i].data[j] += Optional(input[j], e1[i], &d1[i].momentum[j]); //SGD(input[j], e1[i]); //Momentum(input[j], e1[i], &d1[i].momentum[j]);
         }
@@ -788,8 +875,8 @@ float doDiscriminator(const float* input, const float eo)
 
         for(int j = 0; j < d2[i].weights; j++)
         {
-            if(_ldecay != 0)
-                d2[i].data[j] = decayL2(d2[i].data[j], _ldecay);
+            // if(_ldecay != 0)
+            //     d2[i].data[j] = decayL2(d2[i].data[j], _ldecay);
 
             d2[i].data[j] += Optional(o1[j], e2[i], &d2[i].momentum[j]); //SGD(o1[j], e2[i]); //Momentum(o1[j], e2[i], &d2[i].momentum[j]);
         }
@@ -805,8 +892,8 @@ float doDiscriminator(const float* input, const float eo)
             
         for(int j = 0; j < d3[i].weights; j++)
         {
-            if(_ldecay != 0)
-                d3[i].data[j] = decayL2(d3[i].data[j], _ldecay);
+            // if(_ldecay != 0)
+            //     d3[i].data[j] = decayL2(d3[i].data[j], _ldecay);
 
             d3[i].data[j] += Optional(o2[j], e3[i], &d3[i].momentum[j]); //SGD(o2[j], e3[i]); //Momentum(o2[j], e3[i], &d3[i].momentum[j]);
         }
@@ -817,8 +904,8 @@ float doDiscriminator(const float* input, const float eo)
     // layer 4
     for(int j = 0; j < d4.weights; j++)
     {
-        if(_ldecay != 0)
-            d4.data[j] = decayL2(d4.data[j], _ldecay);
+        // if(_ldecay != 0)
+        //     d4.data[j] = decayL2(d4.data[j], _ldecay);
 
         d4.data[j] += Optional(o3[j], e4, &d4.momentum[j]); //SGD(o3[j], e4); //Momentum(o3[j], e4, &d4.momentum[j]);
     }
@@ -879,6 +966,7 @@ float trainDataset()
     float rmse = 0;
 
     // train discriminator
+    const time_t st = time(0);
     for(int j = 0; j < TRAINING_LOOPS; j++)
     {
         for(int i = 0; i < DATA_SIZE; i++)
@@ -907,7 +995,7 @@ float trainDataset()
 
         rmse = rmseDiscriminator();
         if(_log == 1 || _log == 2)
-            printf("RMSE: %f\n", rmse);
+            printf("RMSE: %f :: %lus\n", rmse, time(0)-st);
     }
 
     // return rmse
@@ -1238,6 +1326,7 @@ int main(int argc, char *argv[])
         if(strcmp(argv[1], "rnd") == 0)
         {
             newSRAND();
+
             printf("> %.2f\n", rndScentence(0));
             exit(0);
         }
@@ -1301,7 +1390,7 @@ int main(int argc, char *argv[])
                 setlocale(LC_NUMERIC, "");
                 fprintf(f, "Trained with an RMSE of %f and Fail Variance of %u (higher is better) on;\n%sTime Taken: %.2f minutes\nDigest size: %'u\n", rmse, fv, asctime(localtime(&ltime)), time_taken, DATA_SIZE);
                 fprintf(f, "L-Rate: %f\n", _lrate);
-                fprintf(f, "Decay: %f\n", _ldecay);
+                fprintf(f, "Decay: %f\n", _lrate);
                 fprintf(f, "Dropout: %f\n", _ldropout);
                 fprintf(f, "Momentum: %f\n", _lmomentum);
                 fprintf(f, "Alpha: %f\n\n", _lrmsalpha);
