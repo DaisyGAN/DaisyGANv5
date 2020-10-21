@@ -35,20 +35,20 @@
 
 ///
 
-#define FAST_PREDICTABLE_MODE
-#define DATA_SIZE 2411
-#define OUTPUT_QUOTES 33333
-#define FIRSTLAYER_SIZE 128
-#define HIDDEN_SIZE 128
-#define TRAINING_LOOPS 1
-float       _lrate      = 0.03;
-float       _ldecay     = 0.0005;
-float       _ldropout   = 0.2;
-uint        _lbatches   = 1;
-uint        _loptimiser = 4;
-float       _lmomentum  = 0.1;
-float       _lrmsalpha  = 0.2; //0.99
-const float _lgain      = 1.0;
+// #define FAST_PREDICTABLE_MODE
+// #define DATA_SIZE 2411
+// #define OUTPUT_QUOTES 33333
+// #define FIRSTLAYER_SIZE 128
+// #define HIDDEN_SIZE 128
+// #define TRAINING_LOOPS 1
+// float       _lrate      = 0.03;
+// float       _ldecay     = 0.0005;
+// float       _ldropout   = 0.2;
+// uint        _lbatches   = 1;
+// uint        _loptimiser = 4;
+// float       _lmomentum  = 0.1;
+// float       _lrmsalpha  = 0.2; //0.99
+// const float _lgain      = 1.0;
 
 // #define FAST_PREDICTABLE_MODE
 // #define DATA_SIZE 2411
@@ -66,20 +66,20 @@ const float _lgain      = 1.0;
 // const float _lgain      = 1.0;
 
 // this is not the vegetarian option
-// #define FAST_PREDICTABLE_MODE
-// #define DATA_SIZE 2411
-// #define OUTPUT_QUOTES 33333
-// #define FIRSTLAYER_SIZE 512
-// #define HIDDEN_SIZE 1024
-// #define TRAINING_LOOPS 1
-// float       _lrate      = 0.01;
-// float       _ldecay     = 0.0005;
-// float       _ldropout   = 0.3;
-// uint        _lbatches   = 180;
-// uint        _loptimiser = 1;
-// float       _lmomentum  = 0.1;
-// float       _lrmsalpha  = 0.2;
-// const float _lgain      = 1.0;
+#define FAST_PREDICTABLE_MODE
+#define DATA_SIZE 2411
+#define OUTPUT_QUOTES 33333
+#define FIRSTLAYER_SIZE 512
+#define HIDDEN_SIZE 1024
+#define TRAINING_LOOPS 1
+float       _lrate      = 0.01;
+float       _ldecay     = 0.0005;
+float       _ldropout   = 0.3;
+uint        _lbatches   = 16;
+uint        _loptimiser = 1;
+float       _lmomentum  = 0.1;
+float       _lrmsalpha  = 0.2;
+const float _lgain      = 1.0;
 
 //
 
@@ -916,10 +916,10 @@ float doDiscriminator(const float* input, const float eo)
     return output;
 }
 
-float rmseDiscriminator()
+float rmseDiscriminator(const uint start, const uint end)
 {
     float squaremean = 0;
-    for(int i = 0; i < DATA_SIZE; i++)
+    for(uint i = start; i < end; i++)
     {
         const float r = 1 - doDiscriminator(&digest[i][0], NO_LEARN);
         squaremean += r*r;
@@ -961,7 +961,7 @@ void loadDataset(const char* file)
     printf("Training Data Loaded.\n");
 }
 
-float trainDataset()
+float trainDataset(const uint start, const uint end)
 {
     float rmse = 0;
 
@@ -969,7 +969,7 @@ float trainDataset()
     const time_t st = time(0);
     for(int j = 0; j < TRAINING_LOOPS; j++)
     {
-        for(int i = 0; i < DATA_SIZE; i++)
+        for(int i = start; i < end; i++)
         {
             // train discriminator on data
             doDiscriminator(&digest[i][0], 1);
@@ -993,7 +993,7 @@ float trainDataset()
             }
         }
 
-        rmse = rmseDiscriminator();
+        rmse = rmseDiscriminator(DATA_SIZE * 0.7, DATA_SIZE);
         if(_log == 1 || _log == 2)
             printf("RMSE: %f :: %lus\n", rmse, time(0)-st);
     }
@@ -1111,7 +1111,10 @@ uint rndGen(const char* file, const float max)
             if(time(0) - st > 9) // after 9 seconds
             {
                 if(count < 900)
+                {
+                    printf(":: Terminated at a RPS of %u/100 per second.\n", count/9);
                     return 0; // if the output rate was less than 100 per second, just quit.
+                }
                 
                 count = 0;
                 st = time(0);
@@ -1138,7 +1141,7 @@ float findBest(const uint maxopt)
         for(uint j = 0; j < 3; j++)
         {
             resetPerceptrons();
-            const float rmse = trainDataset();
+            const float rmse = trainDataset(0, DATA_SIZE * 0.7);
             mean += rmse;
             if(rmse < low)
                 low = rmse;
@@ -1269,7 +1272,7 @@ int main(int argc, char *argv[])
             _log = 1;
             remove("weights.dat");
             loadDataset(argv[2]);
-            trainDataset();
+            trainDataset(0, DATA_SIZE);
             saveWeights();
             exit(0);
         }
@@ -1294,7 +1297,7 @@ int main(int argc, char *argv[])
             _log = 1;
             remove("weights.dat");
             loadDataset("botmsg.txt");
-            trainDataset();
+            trainDataset(0, DATA_SIZE);
             saveWeights();
             exit(0);
         }
@@ -1375,7 +1378,7 @@ int main(int argc, char *argv[])
 
             float rmse = 0;
             uint fv = huntBestWeights(&rmse);
-            while(rndGen("out.txt", 0.1) == 0)
+            while(rndGen("out.txt", 0.2) == 0)
                 fv = huntBestWeights(&rmse);
 
             printf("Just generated a new dataset.\n");
