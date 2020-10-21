@@ -4,6 +4,7 @@ Technically not a generative adversarial network anymore.
 This version can randomly generate its learning parameters and then test to see how successful the generated weights were by doing a variance test against random data; it goes by the rule that if random strings fail at-least 70% of the time, then the weights are successful.
 
 `main_revision.c` - this is a WIP edit where I attempt to improve performance over the original `main.c` so far I have added weight decay to little avail, batching of the backprop which had a small improvement of ~2 seconds per pass entire training pass. I had a try with some tanh approximations and I'ved changed the training method to use a cross-validation system, where 70% of the training data is used for training and the remaining 30% for testing the RMSE.
+[21:10:20] - I've now allowed for a multi-process model to compete for the lowest fail variance when using `./cfdgan best`.
 
 ## Example Usage
 - ```./cfdgan retrain <optional file path>```
