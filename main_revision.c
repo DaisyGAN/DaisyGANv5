@@ -1139,7 +1139,7 @@ uint rndGen(const char* file, const float max)
     return 1;
 }
 
-uint hasFailed(const uint resolution)
+float hasFailed(const uint resolution)
 {
     int failvariance = 0;
     for(int i = 0; i < 100*resolution; i++)
@@ -1157,10 +1157,10 @@ uint hasFailed(const uint resolution)
 uint huntBestWeights(float* rmse)
 {
     *rmse = 0;
-    uint fv = 0;
-    uint min = 70;
-    const uint max = 95;
-    uint highest = 0;
+    float fv = 0;
+    float min = 70;
+    const float max = 95;
+    float highest = 0;
     time_t st = time(0);
     while(fv < min || fv > max) //we want random string to fail at-least 70% of the time / but we don't want it to fail all of the time
     {
@@ -1184,10 +1184,10 @@ uint huntBestWeights(float* rmse)
             min = highest;
             highest = 0;
             st = time(0);
-            printf("Taking too long, new target: %u\n", min);
+            printf("Taking too long, new target: %.2f\n", min);
         }
 
-        printf("RMSE: %f / Fail: %u\n", *rmse, fv);
+        printf("RMSE: %f / Fail: %.2f\n", *rmse, fv);
     }
     return fv; // fail variance
 }
@@ -1204,17 +1204,17 @@ void rndBest()
         f = fopen("gs.dat", "r");
         usleep(1000); //1ms
     }
-    uint min = 0;
-    while(fread(&min, 1, sizeof(uint), f) != sizeof(uint))
+    float min = 0;
+    while(fread(&min, 1, sizeof(float), f) != sizeof(float))
         usleep(1000);
     fclose(f);
-    printf("Start fail variance: %u\n\n", min);
+    printf("Start fail variance: %.2f\n\n", min);
 
     // find a new lowest fv target
     while(1)
     {
         const time_t st = time(0);
-        uint fv = 0;
+        float fv = 0;
         while(fv < min || fv > 99) //we want random string to fail at-least 70% of the time
         {
             newSRAND(); //kill any predictability in the random generator
@@ -1242,7 +1242,7 @@ void rndBest()
             trainDataset(0, DATA_SIZE * DATA_TRAIN_PERCENT);
 
             fv = hasFailed(100);
-            printf("Fail Variance: %u\n-----\n", fv);
+            printf("Fail Variance: %.2f\n-----\n", fv);
         }
 
         // this allows multiple processes to compete on the best weights
@@ -1252,7 +1252,7 @@ void rndBest()
             f = fopen("gs.dat", "r+");
             usleep(1000); //1ms
         }
-        while(fread(&min, 1, sizeof(uint), f) != sizeof(uint))
+        while(fread(&min, 1, sizeof(float), f) != sizeof(float))
             usleep(1000);
         if(min < fv)
         {
@@ -1260,7 +1260,7 @@ void rndBest()
                 usleep(1000);
             while(fseek(f, 0, SEEK_SET) < 0)
                 usleep(1000);
-            while(fwrite(&fv, 1, sizeof(uint), f) != sizeof(uint))
+            while(fwrite(&fv, 1, sizeof(float), f) != sizeof(float))
                 usleep(1000);
             flock(fileno(f), LOCK_UN);
 
@@ -1275,7 +1275,7 @@ void rndBest()
     exit(0);
 }
 
-void resetState(const uint min)
+void resetState(const float min)
 {
     remove("weights.dat");
             
@@ -1285,7 +1285,7 @@ void resetState(const uint min)
         f = fopen("gs.dat", "w");
         usleep(1000);
     }
-    while(fwrite(&min, 1, sizeof(uint), f) != sizeof(uint))
+    while(fwrite(&min, 1, sizeof(float), f) != sizeof(float))
         usleep(1000);
     fclose(f);
 }
@@ -1363,11 +1363,11 @@ int main(int argc, char *argv[])
                 f = fopen("gs.dat", "r");
                 usleep(1000); //1ms
             }
-            uint fv = 0;
-            while(fread(&fv, 1, sizeof(uint), f) != sizeof(uint))
+            float fv = 0;
+            while(fread(&fv, 1, sizeof(float), f) != sizeof(float))
                 usleep(1000);
             fclose(f);
-            printf("Current weights have a fail variance of %u.\n\n", fv);
+            printf("Current weights have a fail variance of %.2f.\n\n", fv);
             exit(0);
         }
 
