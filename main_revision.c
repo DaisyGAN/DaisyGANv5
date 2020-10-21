@@ -1263,7 +1263,8 @@ void rndBest()
     {
         while(flock(fileno(f), LOCK_EX) == -1)
             usleep(1000);
-        rewind(f); // might fail
+        while(fseek(f, 0, SEEK_SET) < 0)
+            usleep(1000);
         while(fwrite(&fv, 1, sizeof(uint), f) != sizeof(uint))
             usleep(1000);
         flock(fileno(f), LOCK_UN);
