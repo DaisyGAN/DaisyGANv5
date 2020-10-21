@@ -1154,7 +1154,7 @@ uint hasFailed()
     for(int i = 0; i < 1000; i++)
     {
         const float r = rndScentence(1);
-        if(r < 500)
+        if(r < 50)
             failvariance++;
     }
     return failvariance / 10;
