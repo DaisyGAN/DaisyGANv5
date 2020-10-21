@@ -156,7 +156,8 @@ void saveWeights()
     FILE* f = fopen("weights.dat", "w");
     if(f != NULL)
     {
-        flock(fileno(f), LOCK_EX);
+        if(flock(fileno(f), LOCK_EX) == -1)
+            printf("ERROR flock(LOCK_EX) in saveWeights()\n");
 
         for(uint i = 0; i < FIRSTLAYER_SIZE; i++)
         {
@@ -215,7 +216,9 @@ void saveWeights()
         if(fwrite(&d4.bias_momentum, 1, sizeof(float), f) != sizeof(float))
             printf("ERROR fwrite() in saveWeights() #1m\n");
 
-        flock(fileno(f), LOCK_UN);
+        if(flock(fileno(f), LOCK_UN) == -1)
+            printf("ERROR flock(LOCK_UN) in saveWeights()\n");
+            
         fclose(f);
     }
 }
