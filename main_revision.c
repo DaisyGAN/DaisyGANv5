@@ -1240,9 +1240,10 @@ void rndBest()
 
             resetPerceptrons();
             trainDataset(0, DATA_SIZE * DATA_TRAIN_PERCENT);
-
+            
+            const time_t st2 = time(0);
             fv = hasFailed(100);
-            printf("Fail Variance: %.2f\n-----\n", fv);
+            printf("Fail Variance: %.2f :: %lus\n-----\n", fv, time(0)-st2);
         }
 
         // this allows multiple processes to compete on the best weights
