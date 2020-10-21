@@ -1278,6 +1278,21 @@ void rndBest()
     exit(0);
 }
 
+void resetState(const uint min)
+{
+    remove("weights.dat");
+            
+    FILE* f = fopen("gs.dat", "w");
+    while(f == NULL)
+    {
+        f = fopen("gs.dat", "w");
+        usleep(1000);
+    }
+    while(fwrite(&min, 1, sizeof(uint), f) != sizeof(uint))
+        usleep(1000);
+    fclose(f);
+}
+
 
 //*************************************
 // program entry point
@@ -1297,7 +1312,7 @@ int main(int argc, char *argv[])
         if(strcmp(argv[1], "retrain") == 0)
         {
             _log = 1;
-            remove("weights.dat");
+            resetState(70);
             loadDataset(argv[2]);
             trainDataset(0, DATA_SIZE);
             saveWeights();
@@ -1315,19 +1330,7 @@ int main(int argc, char *argv[])
 
         if(strcmp(argv[1], "reset") == 0)
         {
-            remove("weights.dat");
-            
-            FILE* f = fopen("gs.dat", "w");
-            while(f == NULL)
-            {
-                f = fopen("gs.dat", "w");
-                usleep(1000);
-            }
-            uint fv = atoi(argv[2]);
-            while(fwrite(&fv, 1, sizeof(uint), f) != sizeof(uint))
-                usleep(1000);
-            fclose(f);
-
+            resetState(atoi(argv[2]));
             printf("Weights and multi-process descriptor reset.\n");
             exit(0);
         }
@@ -1338,7 +1341,7 @@ int main(int argc, char *argv[])
         if(strcmp(argv[1], "retrain") == 0)
         {
             _log = 1;
-            remove("weights.dat");
+            resetState(70);
             loadDataset("botmsg.txt");
             trainDataset(0, DATA_SIZE);
             saveWeights();
@@ -1350,19 +1353,7 @@ int main(int argc, char *argv[])
         
         if(strcmp(argv[1], "reset") == 0)
         {
-            remove("weights.dat");
-            
-            FILE* f = fopen("gs.dat", "w");
-            while(f == NULL)
-            {
-                f = fopen("gs.dat", "w");
-                usleep(1000);
-            }
-            uint fv = 70;
-            while(fwrite(&fv, 1, sizeof(uint), f) != sizeof(uint))
-                usleep(1000);
-            fclose(f);
-
+            resetState(70);
             printf("Weights and multi-process descriptor reset.\n");
             exit(0);
         }
@@ -1414,6 +1405,7 @@ int main(int argc, char *argv[])
             timestamp();
             const time_t st = time(0);
             memset(&wtable, 0x00, TABLE_SIZE_MAX*WORD_SIZE);
+            resetState(70);
             loadTable("botdict.txt");
             loadDataset("botmsg.txt");
             clearFile("botmsg.txt");
