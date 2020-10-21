@@ -1278,7 +1278,7 @@ void rndBest()
         const double time_taken = ((double)(time(0)-st)) / 60.0;
         printf("Time Taken: %.2f mins\n\n", time_taken);
 
-        if(fv >= 99.0)
+        if(fv >= 99.0 || min >= 99.0)
             exit(0);
     }
     exit(0);
