@@ -1122,10 +1122,10 @@ uint rndGen(const char* file, const float max)
 
             if(time(0) - st > 9) // after 9 seconds
             {
-                if(count < 900)
+                if(count < 450)
                 {
-                    printf(":: Terminated at a RPS of %u/100 per second.\n", count/9);
-                    return 0; // if the output rate was less than 100 per second, just quit.
+                    printf(":: Terminated at a RPS of %u/50 per second.\n", count/9);
+                    return 0; // if the output rate was less than 50 per second, just quit.
                 }
                 
                 count = 0;
@@ -1159,10 +1159,10 @@ uint huntBestWeights(float* rmse)
     *rmse = 0;
     float fv = 0;
     float min = 70;
-    const float max = 99.9;
+    const float max = 96.0;
     float highest = 0;
     time_t st = time(0);
-    while(fv < min || fv >= 100.0) //we want random string to fail at-least 70% of the time / but we don't want it to fail all of the time
+    while(fv < min || fv > max) //we want random string to fail at-least 70% of the time / but we don't want it to fail all of the time
     {
         newSRAND(); //kill any predictability in the random generator
 
@@ -1218,7 +1218,8 @@ void rndBest()
     {
         const time_t st = time(0);
         float fv = 0;
-        while(fv < min || fv >= 100.0) //we want random string to fail at-least some percent of the time more than 50% preferably
+        const float max = 96.0;
+        while(fv < min || fv > max) //we want random string to fail at-least some percent of the time more than 50% preferably
         {
             newSRAND(); //kill any predictability in the random generator
 
@@ -1278,7 +1279,7 @@ void rndBest()
         const double time_taken = ((double)(time(0)-st)) / 60.0;
         printf("Time Taken: %.2f mins\n\n", time_taken);
 
-        if(fv >= 99.0 || min >= 99.0)
+        if(fv >= 99.0 || min >= max)
             exit(0);
     }
     exit(0);
