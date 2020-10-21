@@ -40,7 +40,7 @@
 
 // #define FAST_PREDICTABLE_MODE
 // #define DATA_TRAIN_PERCENT 0.7
-// #define DATA_SIZE 2411
+// #define DATA_SIZE 3045
 // #define OUTPUT_QUOTES 33333
 // #define FIRSTLAYER_SIZE 128
 // #define HIDDEN_SIZE 128
@@ -56,7 +56,7 @@
 
 // #define FAST_PREDICTABLE_MODE
 // #define DATA_TRAIN_PERCENT 0.7
-// #define DATA_SIZE 2411
+// #define DATA_SIZE 3045
 // #define OUTPUT_QUOTES 33333
 // #define FIRSTLAYER_SIZE 256
 // #define HIDDEN_SIZE 256
@@ -73,7 +73,7 @@
 // this is not the vegetarian option
 #define FAST_PREDICTABLE_MODE
 #define DATA_TRAIN_PERCENT 0.7
-#define DATA_SIZE 2411
+#define DATA_SIZE 3045
 #define OUTPUT_QUOTES 33333
 #define FIRSTLAYER_SIZE 512
 #define HIDDEN_SIZE 1024
@@ -1159,23 +1159,26 @@ uint huntBestWeights(float* rmse)
     *rmse = 0;
     float fv = 0;
     float min = 70;
-    const float max = 95;
+    const float max = 99.9;
     float highest = 0;
     time_t st = time(0);
-    while(fv < min || fv > max) //we want random string to fail at-least 70% of the time / but we don't want it to fail all of the time
+    while(fv < min || fv >= 100.0) //we want random string to fail at-least 70% of the time / but we don't want it to fail all of the time
     {
         newSRAND(); //kill any predictability in the random generator
 
-        _loptimiser = uRand(0, 1);
+        _loptimiser = uRand(0, 4);
         _lrate      = uRandFloat(0.001, 0.03);
+        //_ldecay     = uRandFloat(0.1, 0.0001);
         _ldropout   = uRandFloat(0.2, 0.3);
-        _lmomentum  = uRandFloat(0.1, 0.9);
-        _lrmsalpha  = uRandFloat(0.2, 0.99);
+        if(_loptimiser == 1 || _loptimiser == 2)
+            _lmomentum  = uRandFloat(0.1, 0.9);
+        if(_loptimiser == 4)
+            _lrmsalpha  = uRandFloat(0.2, 0.99);
 
         resetPerceptrons();
         *rmse = trainDataset(0, DATA_SIZE * DATA_TRAIN_PERCENT);
 
-        fv = hasFailed(1);
+        fv = hasFailed(100);
         if(fv <= max && fv > highest)
             highest = fv;
 
@@ -1215,7 +1218,7 @@ void rndBest()
     {
         const time_t st = time(0);
         float fv = 0;
-        while(fv < min || fv > 99) //we want random string to fail at-least 70% of the time
+        while(fv < min || fv >= 100.0) //we want random string to fail at-least some percent of the time more than 50% preferably
         {
             newSRAND(); //kill any predictability in the random generator
 
@@ -1428,13 +1431,6 @@ int main(int argc, char *argv[])
             loadTable("botdict.txt");
             loadDataset("botmsg.txt");
             clearFile("botmsg.txt");
-
-            _loptimiser = uRand(0, 4);
-            _lrate      = uRandFloat(0.001, 0.03);
-            _ldecay     = uRandFloat(0.1, 0.0001);
-            _ldropout   = uRandFloat(0.2, 0.3);
-            _lmomentum  = uRandFloat(0.1, 0.9);
-            _lrmsalpha  = uRandFloat(0.2, 0.99);
 
             float rmse = 0;
             uint fv = huntBestWeights(&rmse);
