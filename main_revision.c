@@ -1256,10 +1256,9 @@ void rndBest()
         f = fopen("gs.dat", "r+");
         usleep(1000); //1ms
     }
-    uint lfv = 0;
-    while(fread(&lfv, 1, sizeof(uint), f) != sizeof(uint))
+    while(fread(&min, 1, sizeof(uint), f) != sizeof(uint))
         usleep(1000);
-    if(lfv < fv)
+    if(min < fv)
     {
         while(flock(fileno(f), LOCK_EX) == -1)
             usleep(1000);
