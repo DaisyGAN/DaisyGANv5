@@ -1265,6 +1265,8 @@ void rndBest()
                 usleep(1000);
             flock(fileno(f), LOCK_UN);
 
+            min = fv;
+
             saveWeights();
         }
         fclose(f);
@@ -1272,6 +1274,9 @@ void rndBest()
         // done    
         const double time_taken = ((double)(time(0)-st)) / 60.0;
         printf("Time Taken: %.2f mins\n\n", time_taken);
+
+        if(fv >= 99.0)
+            exit(0);
     }
     exit(0);
 }
