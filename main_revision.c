@@ -54,38 +54,38 @@
 // float       _lrmsalpha  = 0.2; //0.99
 // const float _lgain      = 1.0;
 
-#define FAST_PREDICTABLE_MODE
-#define DATA_TRAIN_PERCENT 0.7
-#define DATA_SIZE 3045 //110927
-#define OUTPUT_QUOTES 33333
-#define FIRSTLAYER_SIZE 256
-#define HIDDEN_SIZE 256
-#define TRAINING_LOOPS 1
-float       _lrate      = 0.03;
-float       _ldecay     = 0.0005;
-float       _ldropout   = 0.2;
-uint        _lbatches   = 8;
-uint        _loptimiser = 4;
-float       _lmomentum  = 0.1;
-float       _lrmsalpha  = 0.2; //0.99
-const float _lgain      = 1.0;
-
-// this is not the vegetarian option
 // #define FAST_PREDICTABLE_MODE
 // #define DATA_TRAIN_PERCENT 0.7
 // #define DATA_SIZE 3045 //110927
 // #define OUTPUT_QUOTES 33333
-// #define FIRSTLAYER_SIZE 512
-// #define HIDDEN_SIZE 1024
+// #define FIRSTLAYER_SIZE 256
+// #define HIDDEN_SIZE 256
 // #define TRAINING_LOOPS 1
-// float       _lrate      = 0.01;
+// float       _lrate      = 0.03;
 // float       _ldecay     = 0.0005;
-// float       _ldropout   = 0.3;
-// uint        _lbatches   = 16;
-// uint        _loptimiser = 1;
+// float       _ldropout   = 0.2;
+// uint        _lbatches   = 8;
+// uint        _loptimiser = 4;
 // float       _lmomentum  = 0.1;
-// float       _lrmsalpha  = 0.2;
+// float       _lrmsalpha  = 0.2; //0.99
 // const float _lgain      = 1.0;
+
+// this is not the vegetarian option
+#define FAST_PREDICTABLE_MODE
+#define DATA_TRAIN_PERCENT 0.7
+#define DATA_SIZE 3045 //110927
+#define OUTPUT_QUOTES 33333
+#define FIRSTLAYER_SIZE 512
+#define HIDDEN_SIZE 1024
+#define TRAINING_LOOPS 1
+float       _lrate      = 0.01;
+float       _ldecay     = 0.0005;
+float       _ldropout   = 0.3;
+uint        _lbatches   = 16;
+uint        _loptimiser = 1;
+float       _lmomentum  = 0.1;
+float       _lrmsalpha  = 0.2;
+const float _lgain      = 1.0;
 
 //
 
