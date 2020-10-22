@@ -18,7 +18,7 @@ This version can randomly generate its learning parameters and then test to see 
 <br>Reset the current weights. The optional parameter allows you to set the minimum viable fail variance value for a set of computed weights, all weights below this value are discarded.
 
 - ```./cfdgan best```
-<br>This will randomly iterate each parameter and recomputing the weights until the best solution is found. This function is multi-process safe.
+<br>Randomly iterate each parameter and recompute the weights until the best solution is found. This function is multi-process safe.
 
 - ```./cfdgan "this is an example scentence"```
 <br>Get a percentage of likelyhood that the sampled dataset wrote the provided message.
