@@ -571,7 +571,6 @@ static inline float arctan(float x)
     return atan(x);
 }
 
-//https://stats.stackexchange.com/questions/60166/how-to-use-1-7159-tanh2-3-x-as-activation-function
 static inline float lecun_tanh(float x)
 {
     return 1.7159 * tanh(0.666666667 * x);
@@ -636,8 +635,12 @@ static inline float sigmoidDerivative(float x)
 
 static inline float tanhDerivative(float x)
 {
-    return 1 - pow(x, 2);
-    //return 1-(x*x);
+    // if(x > 0)
+    //     return 1 - pow(x, 2);
+    // else
+    //     return 1 + pow(x, 2);
+
+    return 1-(x*x);
 }
 
 static inline float lecun_tanhDerivative(float x)
