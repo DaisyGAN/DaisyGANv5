@@ -6,6 +6,8 @@
     DaisyGANv5
 
     Technically not a generative adversarial network anymore.
+
+    rndBest() now allows a multi-process model
 */
 
 #pragma GCC diagnostic ignored "-Wunused-result"
@@ -22,6 +24,7 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <locale.h>
+#include <sys/file.h>
 
 #define uint uint32_t
 #define NO_LEARN -2
@@ -29,33 +32,39 @@
 ///
 
 #define TABLE_SIZE_MAX 80000
-#define DIGEST_SIZE 16
+#define DIGEST_SIZE 8
 #define WORD_SIZE 256 //32
 #define MESSAGE_SIZE WORD_SIZE*DIGEST_SIZE
 
 ///
 
 // #define FAST_PREDICTABLE_MODE
-// #define DATA_SIZE 333
+// #define DATA_TRAIN_PERCENT 0.7
+// #define DATA_SIZE 3045 //110927
 // #define OUTPUT_QUOTES 33333
 // #define FIRSTLAYER_SIZE 128
 // #define HIDDEN_SIZE 128
 // #define TRAINING_LOOPS 1
 // float       _lrate      = 0.03;
+// float       _ldecay     = 0.0005;
 // float       _ldropout   = 0.2;
+// uint        _lbatches   = 1;
 // uint        _loptimiser = 4;
 // float       _lmomentum  = 0.1;
 // float       _lrmsalpha  = 0.2; //0.99
 // const float _lgain      = 1.0;
 
 // #define FAST_PREDICTABLE_MODE
-// #define DATA_SIZE 995
+// #define DATA_TRAIN_PERCENT 0.7
+// #define DATA_SIZE 3045 //110927
 // #define OUTPUT_QUOTES 33333
 // #define FIRSTLAYER_SIZE 256
 // #define HIDDEN_SIZE 256
 // #define TRAINING_LOOPS 1
 // float       _lrate      = 0.03;
+// float       _ldecay     = 0.0005;
 // float       _ldropout   = 0.2;
+// uint        _lbatches   = 8;
 // uint        _loptimiser = 4;
 // float       _lmomentum  = 0.1;
 // float       _lrmsalpha  = 0.2; //0.99
@@ -63,13 +72,16 @@
 
 // this is not the vegetarian option
 #define FAST_PREDICTABLE_MODE
-#define DATA_SIZE 3333
+#define DATA_TRAIN_PERCENT 0.7
+#define DATA_SIZE 3045 //110927
 #define OUTPUT_QUOTES 33333
 #define FIRSTLAYER_SIZE 512
 #define HIDDEN_SIZE 1024
 #define TRAINING_LOOPS 1
 float       _lrate      = 0.01;
+float       _ldecay     = 0.0005;
 float       _ldropout   = 0.3;
+uint        _lbatches   = 16;
 uint        _loptimiser = 1;
 float       _lmomentum  = 0.1;
 float       _lrmsalpha  = 0.2;
@@ -144,6 +156,9 @@ void saveWeights()
     FILE* f = fopen("weights.dat", "w");
     if(f != NULL)
     {
+        if(flock(fileno(f), LOCK_EX) == -1)
+            printf("ERROR flock(LOCK_EX) in saveWeights()\n");
+
         for(uint i = 0; i < FIRSTLAYER_SIZE; i++)
         {
             if(fwrite(&d1[i].data[0], 1, d1[i].weights*sizeof(float), f) != d1[i].weights*sizeof(float))
@@ -200,6 +215,9 @@ void saveWeights()
         
         if(fwrite(&d4.bias_momentum, 1, sizeof(float), f) != sizeof(float))
             printf("ERROR fwrite() in saveWeights() #1m\n");
+
+        if(flock(fileno(f), LOCK_UN) == -1)
+            printf("ERROR flock(LOCK_UN) in saveWeights()\n");
 
         fclose(f);
     }
@@ -498,7 +516,45 @@ void resetPerceptrons()
 // https://en.wikipedia.org/wiki/Activation_function
 // https://www.analyticsvidhya.com/blog/2020/01/fundamentals-deep-learning-activation-functions-when-to-use-them/
 // https://adl1995.github.io/an-overview-of-activation-functions-used-in-neural-networks.html
+// https://stackoverflow.com/questions/42537957/fast-accurate-atan-arctan-approximation-algorithm
+// https://varietyofsound.wordpress.com/2011/02/14/efficient-tanh-computation-using-lamberts-continued-fraction/
 //*************************************
+
+float fast_tanh(float x)
+{
+    float x2 = x * x;
+    float a = x * (135135.0f + x2 * (17325.0f + x2 * (378.0f + x2)));
+    float b = 135135.0f + x2 * (62370.0f + x2 * (3150.0f + x2 * 28.0f));
+    return a / b;
+}
+
+float tanh_c3(float v)
+{
+    const float c1 = 0.03138777F;
+    const float c2 = 0.276281267F;
+    const float c_log2f = 1.442695022F;
+    v *= c_log2f;
+    int intPart = (int)v;
+    float x = (v - intPart);
+    float xx = x * x;
+    float v1 = c_log2f + c2 * xx;
+    float v2 = x + xx * c1 * x;
+    float v3 = (v2 + v1);
+    *((int*)&v3) += intPart << 24;
+    float v4 = v2 - v1;
+    return (v3 + v4) / (v3 - v4);
+}
+
+float fatan(float x)
+{
+    return 0.78539816339*x - x*(fabs(x) - 1)*(0.2447 + 0.0663*fabs(x));
+}
+
+float fatan2(float x)
+{
+    float xx = x * x;
+    return ((0.0776509570923569*xx + -0.287434475393028)*xx + 0.995181682)*x;
+}
 
 static inline float bipolarSigmoid(float x)
 {
@@ -515,9 +571,10 @@ static inline float arctan(float x)
     return atan(x);
 }
 
+//https://stats.stackexchange.com/questions/60166/how-to-use-1-7159-tanh2-3-x-as-activation-function
 static inline float lecun_tanh(float x)
 {
-    return 1.7159 * atan(0.666666667 * x);
+    return 1.7159 * tanh(0.666666667 * x);
 }
 
 static inline float sigmoid(float x)
@@ -570,6 +627,32 @@ static inline float smoothReLU(float x) //aka softplus
 static inline float logit(float x)
 {
     return log(x / (1 - x));
+}
+
+static inline float sigmoidDerivative(float x)
+{
+    return x * (1 - x);
+}
+
+static inline float tanhDerivative(float x)
+{
+    return 1 - pow(x, 2);
+    //return 1-(x*x);
+}
+
+static inline float lecun_tanhDerivative(float x)
+{
+    return 1.14393 * pow((1 / cosh(2*x/3)), 2);
+}
+
+static inline float decay(const float x, const float lambda)
+{
+    return (1-lambda)*x;
+}
+
+static inline float decayL2(const float x, const float lambda)
+{
+    return (1-_lrate*lambda)*x;
 }
 
 void softmax_transform(float* w, const uint32_t n)
@@ -647,11 +730,11 @@ float Optional(const float input, const float error, float* momentum)
     if(_loptimiser == 1)
         return Momentum(input, error, momentum);
     else if(_loptimiser == 2)
-        return ADAGrad(input, error, momentum);
-    else if(_loptimiser == 3)
-        return RMSProp(input, error, momentum);
-    else if(_loptimiser == 4)
         return Nesterov(input, error, momentum);
+    else if(_loptimiser == 3)
+        return ADAGrad(input, error, momentum);
+    else if(_loptimiser == 4)
+        return RMSProp(input, error, momentum);
     
     return SGD(input, error);
 }
@@ -660,6 +743,12 @@ float Optional(const float input, const float error, float* momentum)
 //*************************************
 // network training functions
 //*************************************
+float o1[FIRSTLAYER_SIZE] = {0};
+float o2[HIDDEN_SIZE] = {0};
+float o3[HIDDEN_SIZE] = {0};
+float o4 = 0;
+float error = 0;
+uint batches = 0;
 
 float doDiscriminator(const float* input, const float eo)
 {
@@ -668,24 +757,24 @@ float doDiscriminator(const float* input, const float eo)
 **************************************/
 
     // layer one, inputs (fc)
-    float o1[FIRSTLAYER_SIZE];
+    float o1f[FIRSTLAYER_SIZE];
     for(int i = 0; i < FIRSTLAYER_SIZE; i++)
-        o1[i] = lecun_tanh(doPerceptron(input, &d1[i]));
+        o1f[i] = lecun_tanh(doPerceptron(input, &d1[i]));
 
     // layer two, hidden (fc expansion)
-    float o2[HIDDEN_SIZE];
+    float o2f[HIDDEN_SIZE];
     for(int i = 0; i < HIDDEN_SIZE; i++)
-        o2[i] = lecun_tanh(doPerceptron(&o1[0], &d2[i]));
+        o2f[i] = lecun_tanh(doPerceptron(&o1f[0], &d2[i]));
 
     // layer three, hidden (fc)
-    float o3[HIDDEN_SIZE];
-    
+    float o3f[HIDDEN_SIZE];
     for(int i = 0; i < HIDDEN_SIZE; i++)
-        o3[i] = lecun_tanh(doPerceptron(&o2[0], &d3[i]));
+        o3f[i] = lecun_tanh(doPerceptron(&o2f[0], &d3[i]));
 
     // layer four, output (fc compression)
-    const float output = sigmoid(lecun_tanh(doPerceptron(&o3[0], &d4)));
+    const float output = sigmoid(lecun_tanh(doPerceptron(&o3f[0], &d4)));
 
+    // if it's just forward pass, return result.
     if(eo == NO_LEARN)
         return output;
 
@@ -693,13 +782,57 @@ float doDiscriminator(const float* input, const float eo)
     Backward Prop Error
 **************************************/
 
+    // reset accumulators if batches was reset
+    if(batches == 0)
+    {
+        memset(&o1, 0x00, FIRSTLAYER_SIZE * sizeof(float));
+        memset(&o2, 0x00, HIDDEN_SIZE * sizeof(float));
+        memset(&o3, 0x00, HIDDEN_SIZE * sizeof(float));
+        o4 = 0;
+        error = 0;
+    }
+
+    // batch accumulation of outputs
+    o4 += output;
+    for(int i = 0; i < FIRSTLAYER_SIZE; i++)
+        o1[i] += o1f[i];
+
+    for(int i = 0; i < HIDDEN_SIZE; i++)
+        o2[i] += o2f[i];
+
+    for(int i = 0; i < HIDDEN_SIZE; i++)
+        o3[i] += o3f[i];
+
+    // accumulate output error
+    error += eo - output;
+
+    // batching controller
+    batches++;
+    if(batches < _lbatches)
+    {
+        return output;
+    }
+    else
+    {
+        error /= _lbatches;
+        o4 /= _lbatches;
+        for(int i = 0; i < FIRSTLAYER_SIZE; i++)
+            o1[i] /= _lbatches;
+        for(int i = 0; i < HIDDEN_SIZE; i++)
+            o2[i] /= _lbatches;
+        for(int i = 0; i < HIDDEN_SIZE; i++)
+            o3[i] /= _lbatches;
+        batches = 0;
+    }
+
+    if(error == 0) // superflous will not likely ever happen
+        return output;
+
     float e1[FIRSTLAYER_SIZE];
     float e2[HIDDEN_SIZE];
     float e3[HIDDEN_SIZE];
 
-    // layer 4
-    const float error = eo - output;
-    float e4 = _lgain * output * (1-output) * error;
+    float e4 = _lgain * sigmoidDerivative(o4) * error;
 
     // layer 3 (output)
     float ler = 0;
@@ -708,7 +841,7 @@ float doDiscriminator(const float* input, const float eo)
     ler += d4.bias * e4;
     
     for(int i = 0; i < HIDDEN_SIZE; i++)
-        e3[i] = _lgain * o3[i] * (1-o3[i]) * ler;
+        e3[i] = _lgain * lecun_tanhDerivative(o3[i]) * ler;
 
     // layer 2
     ler = 0;
@@ -718,7 +851,7 @@ float doDiscriminator(const float* input, const float eo)
             ler += d3[i].data[j] * e3[i];
         ler += d3[i].bias * e3[i];
         
-        e2[i] = _lgain * o2[i] * (1-o2[i]) * ler;
+        e2[i] = _lgain * lecun_tanhDerivative(o2[i]) * ler;
     }
 
     // layer 1
@@ -734,7 +867,7 @@ float doDiscriminator(const float* input, const float eo)
         int k0 = 0;
         if(k != 0)
             k0 = 1;
-        k += _lgain * o1[i] * (1-o1[i]) * ler;
+        k += _lgain * lecun_tanhDerivative(o1[i]) * ler;
         if(k0 == 1)
         {
             e1[ki] = k / 2;
@@ -753,7 +886,12 @@ float doDiscriminator(const float* input, const float eo)
             continue;
 
         for(int j = 0; j < d1[i].weights; j++)
+        {
+            // if(_ldecay != 0)
+            //     d1[i].data[j] = decayL2(d1[i].data[j], _ldecay);
+
             d1[i].data[j] += Optional(input[j], e1[i], &d1[i].momentum[j]); //SGD(input[j], e1[i]); //Momentum(input[j], e1[i], &d1[i].momentum[j]);
+        }
 
         d1[i].bias += Optional(1, e1[i], &d1[i].bias_momentum); //SGD(1, e1[i]); //Momentum(1, e1[i], &d1[i].bias_momentum);
     }
@@ -765,7 +903,12 @@ float doDiscriminator(const float* input, const float eo)
             continue;
 
         for(int j = 0; j < d2[i].weights; j++)
+        {
+            // if(_ldecay != 0)
+            //     d2[i].data[j] = decayL2(d2[i].data[j], _ldecay);
+
             d2[i].data[j] += Optional(o1[j], e2[i], &d2[i].momentum[j]); //SGD(o1[j], e2[i]); //Momentum(o1[j], e2[i], &d2[i].momentum[j]);
+        }
 
         d2[i].bias += Optional(1, e2[i], &d2[i].bias_momentum); //SGD(1, e2[i]); //Momentum(1, e2[i], &d2[i].bias_momentum);
     }
@@ -777,14 +920,24 @@ float doDiscriminator(const float* input, const float eo)
             continue;
             
         for(int j = 0; j < d3[i].weights; j++)
+        {
+            // if(_ldecay != 0)
+            //     d3[i].data[j] = decayL2(d3[i].data[j], _ldecay);
+
             d3[i].data[j] += Optional(o2[j], e3[i], &d3[i].momentum[j]); //SGD(o2[j], e3[i]); //Momentum(o2[j], e3[i], &d3[i].momentum[j]);
+        }
 
         d3[i].bias += Optional(1, e3[i], &d3[i].bias_momentum); //SGD(1, e3[i]); //Momentum(1, e3[i], &d3[i].bias_momentum);
     }
 
     // layer 4
     for(int j = 0; j < d4.weights; j++)
+    {
+        // if(_ldecay != 0)
+        //     d4.data[j] = decayL2(d4.data[j], _ldecay);
+
         d4.data[j] += Optional(o3[j], e4, &d4.momentum[j]); //SGD(o3[j], e4); //Momentum(o3[j], e4, &d4.momentum[j]);
+    }
 
     d4.bias += Optional(1, e4, &d4.bias_momentum); //SGD(1, e4); //Momentum(1, e4, &d4.bias_momentum);
 
@@ -792,10 +945,10 @@ float doDiscriminator(const float* input, const float eo)
     return output;
 }
 
-float rmseDiscriminator()
+float rmseDiscriminator(const uint start, const uint end)
 {
     float squaremean = 0;
-    for(int i = 0; i < DATA_SIZE; i++)
+    for(uint i = start; i < end; i++)
     {
         const float r = 1 - doDiscriminator(&digest[i][0], NO_LEARN);
         squaremean += r*r;
@@ -806,6 +959,8 @@ float rmseDiscriminator()
 
 void loadDataset(const char* file)
 {
+    const time_t st = time(0);
+
     // read training data [every input is truncated to 256 characters]
     FILE* f = fopen(file, "r");
     if(f)
@@ -835,16 +990,18 @@ void loadDataset(const char* file)
     }
 
     printf("Training Data Loaded.\n");
+    printf("Time Taken: %.2f mins\n\n", ((double)(time(0)-st)) / 60.0);
 }
 
-float trainDataset()
+float trainDataset(const uint start, const uint end)
 {
     float rmse = 0;
 
     // train discriminator
+    const time_t st = time(0);
     for(int j = 0; j < TRAINING_LOOPS; j++)
     {
-        for(int i = 0; i < DATA_SIZE; i++)
+        for(int i = start; i < end; i++)
         {
             // train discriminator on data
             doDiscriminator(&digest[i][0], 1);
@@ -868,9 +1025,9 @@ float trainDataset()
             }
         }
 
-        rmse = rmseDiscriminator();
+        rmse = rmseDiscriminator(DATA_SIZE * DATA_TRAIN_PERCENT, DATA_SIZE);
         if(_log == 1 || _log == 2)
-            printf("RMSE: %f\n", rmse);
+            printf("RMSE: %f :: %lus\n", rmse, time(0)-st);
     }
 
     // return rmse
@@ -985,8 +1142,11 @@ uint rndGen(const char* file, const float max)
 
             if(time(0) - st > 9) // after 9 seconds
             {
-                if(count < 900)
-                    return 0; // if the output rate was less than 100 per second, just quit.
+                if(count < 450)
+                {
+                    printf(":: Terminated at a RPS of %u/50 per second.\n", count/9);
+                    return 0; // if the output rate was less than 50 per second, just quit.
+                }
                 
                 count = 0;
                 st = time(0);
@@ -999,79 +1159,46 @@ uint rndGen(const char* file, const float max)
     return 1;
 }
 
-float findBest(const uint maxopt)
-{
-    float lowest_low = 999999999;
-    for(uint i = 0; i <= maxopt; i++)
-    {
-        _loptimiser = i;
-        if(_log == 2)
-            printf("\nOptimiser: %u\n", _loptimiser);
-
-        const time_t st = time(0);
-        float mean = 0, low = 9999999, high = 0;
-        for(uint j = 0; j < 3; j++)
-        {
-            resetPerceptrons();
-            const float rmse = trainDataset();
-            mean += rmse;
-            if(rmse < low)
-                low = rmse;
-            if(rmse > high)
-                high = rmse;
-            if(rmse > 0 && rmse < lowest_low)
-            {
-                lowest_low = rmse;
-                saveWeights();
-            }
-        }
-        if(_log == 2)
-        {
-            printf("Lo  RMSE:   %f\n", low);
-            printf("Hi  RMSE:   %f\n", high);
-            printf("Avg RMSE:   ~ %f\n", mean / 6);
-            printf("RMSE Delta: %f\n", high-low);
-            printf("Time Taken: %.2f mins\n", ((double)(time(0)-st)) / 60.0);
-        }
-    }
-    if(_log == 2)
-        printf("\nThe dataset with an RMSE of %f was saved to weights.dat\n\n", lowest_low);
-    return lowest_low;
-}
-
-uint hasFailed()
+float hasFailed(const uint resolution)
 {
     int failvariance = 0;
-    for(int i = 0; i < 100; i++)
+    for(int i = 0; i < 100*resolution; i++)
     {
         const float r = rndScentence(1);
         if(r < 50)
             failvariance++;
     }
-    return failvariance;
+    if(resolution == 1)
+        return failvariance;
+    else
+        return (double)failvariance / (double)resolution;
 }
 
 uint huntBestWeights(float* rmse)
 {
     *rmse = 0;
-    uint fv = 0;
-    uint min = 70;
-    const uint max = 95;
-    uint highest = 0;
+    float fv = 0;
+    float min = 70;
+    const float max = 96.0;
+    float highest = 0;
     time_t st = time(0);
     while(fv < min || fv > max) //we want random string to fail at-least 70% of the time / but we don't want it to fail all of the time
     {
         newSRAND(); //kill any predictability in the random generator
 
+        _loptimiser = uRand(0, 4);
         _lrate      = uRandFloat(0.001, 0.03);
-        _ldropout   = uRandFloat(0.2, 0.3);
-        _lmomentum  = uRandFloat(0.1, 0.9);
-        _lrmsalpha  = uRandFloat(0.2, 0.99);
+        //_ldecay     = uRandFloat(0.1, 0.0001);
+        _ldropout   = uRandFloat(0, 0.3);
+        if(_loptimiser == 1 || _loptimiser == 2)
+            _lmomentum  = uRandFloat(0.1, 0.9);
+        if(_loptimiser == 4)
+            _lrmsalpha  = uRandFloat(0.2, 0.99);
 
-        *rmse = findBest(1);
+        resetPerceptrons();
+        *rmse = trainDataset(0, DATA_SIZE * DATA_TRAIN_PERCENT);
 
-        loadWeights();
-        fv = hasFailed();
+        fv = hasFailed(100);
         if(fv <= max && fv > highest)
             highest = fv;
 
@@ -1080,12 +1207,117 @@ uint huntBestWeights(float* rmse)
             min = highest;
             highest = 0;
             st = time(0);
-            printf("Taking too long, new target: %u\n", min);
+            printf("Taking too long, new target: %.2f\n", min);
         }
 
-        printf("RMSE: %f / Fail: %u\n", *rmse, fv);
+        printf("RMSE: %f / Fail: %.2f\n", *rmse, fv);
     }
     return fv; // fail variance
+}
+
+void rndBest()
+{
+    _log = 2;
+    loadDataset("botmsg.txt");
+
+    // load the last lowest fv target
+    FILE* f = fopen("gs.dat", "r");
+    while(f == NULL)
+    {
+        f = fopen("gs.dat", "r");
+        usleep(1000); //1ms
+    }
+    float min = 0;
+    while(fread(&min, 1, sizeof(float), f) != sizeof(float))
+        usleep(1000);
+    fclose(f);
+    printf("Start fail variance: %.2f\n\n", min);
+
+    // find a new lowest fv target
+    while(1)
+    {
+        const time_t st = time(0);
+        float fv = 0;
+        const float max = 96.0;
+        while(fv < min || fv > max) //we want random string to fail at-least some percent of the time more than 50% preferably
+        {
+            newSRAND(); //kill any predictability in the random generator
+
+            _loptimiser = uRand(0, 4);
+            _lrate      = uRandFloat(0.001, 0.03);
+            //_ldecay     = uRandFloat(0.1, 0.0001);
+            _ldropout   = uRandFloat(0, 0.3);
+            if(_loptimiser == 1 || _loptimiser == 2)
+                _lmomentum  = uRandFloat(0.1, 0.9);
+            if(_loptimiser == 4)
+                _lrmsalpha  = uRandFloat(0.2, 0.99);
+            printf("Optimiser:     %u\n", _loptimiser);
+            printf("Learning Rate: %f\n", _lrate);
+            //printf("Decay:         %f\n", _ldecay);
+            printf("Dropout:       %f\n", _ldropout);
+            if(_loptimiser == 1 || _loptimiser == 2)
+                printf("Momentum:      %f\n", _lmomentum);
+            else if(_loptimiser == 4)
+                printf("RMSProp Alpha: %f\n", _lrmsalpha);
+
+            printf("~\n");
+
+            resetPerceptrons();
+            trainDataset(0, DATA_SIZE * DATA_TRAIN_PERCENT);
+            
+            const time_t st2 = time(0);
+            fv = hasFailed(100);
+            printf("Fail Variance: %.2f :: %lus\n-----\n", fv, time(0)-st2);
+        }
+
+        // this allows multiple processes to compete on the best weights
+        f = fopen("gs.dat", "r+");
+        while(f == NULL)
+        {
+            f = fopen("gs.dat", "r+");
+            usleep(1000); //1ms
+        }
+        while(fread(&min, 1, sizeof(float), f) != sizeof(float))
+            usleep(1000);
+        if(min < fv)
+        {
+            while(flock(fileno(f), LOCK_EX) == -1)
+                usleep(1000);
+            while(fseek(f, 0, SEEK_SET) < 0)
+                usleep(1000);
+            while(fwrite(&fv, 1, sizeof(float), f) != sizeof(float))
+                usleep(1000);
+            flock(fileno(f), LOCK_UN);
+
+            min = fv;
+
+            saveWeights();
+        }
+        fclose(f);
+
+        // done    
+        const double time_taken = ((double)(time(0)-st)) / 60.0;
+        printf("Time Taken: %.2f mins\n\n", time_taken);
+
+        if(fv >= 99.0 || min >= max)
+            exit(0);
+    }
+    exit(0);
+}
+
+void resetState(const float min)
+{
+    remove("weights.dat");
+            
+    FILE* f = fopen("gs.dat", "w");
+    while(f == NULL)
+    {
+        f = fopen("gs.dat", "w");
+        usleep(1000);
+    }
+    while(fwrite(&min, 1, sizeof(float), f) != sizeof(float))
+        usleep(1000);
+    fclose(f);
 }
 
 
@@ -1107,9 +1339,9 @@ int main(int argc, char *argv[])
         if(strcmp(argv[1], "retrain") == 0)
         {
             _log = 1;
-            remove("weights.dat");
+            resetState(70);
             loadDataset(argv[2]);
-            trainDataset();
+            trainDataset(0, DATA_SIZE);
             saveWeights();
             exit(0);
         }
@@ -1123,33 +1355,10 @@ int main(int argc, char *argv[])
             exit(0);
         }
 
-        if(strcmp(argv[1], "rndbest") == 0)
+        if(strcmp(argv[1], "reset") == 0)
         {
-            _log = 2;
-            remove("weights.dat");
-            loadDataset("botmsg.txt");
-
-            uint fv = 0;
-            const uint min = atoi(argv[2]);
-            while(fv < min) //we want random string to fail at-least 70% of the time
-            {
-                newSRAND(); //kill any predictability in the random generator
-
-                _lrate      = uRandFloat(0.001, 0.03);
-                _ldropout   = uRandFloat(0.2, 0.3);
-                _lmomentum  = uRandFloat(0.1, 0.9);
-                _lrmsalpha  = uRandFloat(0.2, 0.99);
-                printf("Learning Rate: %f\n", _lrate);
-                printf("Dropout:       %f\n", _ldropout);
-                printf("Momentum:      %f\n", _lmomentum);
-                printf("RMSProp Alpha: %f\n", _lrmsalpha);
-
-                findBest(4);
-
-                loadWeights();
-                fv = hasFailed();
-                printf("Fail Variance: %u\n\n", fv);
-            }
+            resetState(atoi(argv[2]));
+            printf("Weights and multi-process descriptor reset.\n");
             exit(0);
         }
     }
@@ -1159,59 +1368,42 @@ int main(int argc, char *argv[])
         if(strcmp(argv[1], "retrain") == 0)
         {
             _log = 1;
-            remove("weights.dat");
+            resetState(70);
             loadDataset("botmsg.txt");
-            trainDataset();
+            trainDataset(0, DATA_SIZE);
             saveWeights();
             exit(0);
         }
 
-        if(strcmp(argv[1], "rndbest") == 0)
-        {
-            _log = 2;
-            remove("weights.dat");
-            loadDataset("botmsg.txt");
-
-            newSRAND(); //kill any predictability in the random generator
-
-            uint fv = 0;
-            while(fv < 70) //we want random string to fail at-least 70% of the time
-            {
-                _lrate      = uRandFloat(0.001, 0.03);
-                _ldropout   = uRandFloat(0.2, 0.3);
-                _lmomentum  = uRandFloat(0.1, 0.9);
-                _lrmsalpha  = uRandFloat(0.2, 0.99);
-                printf("Learning Rate: %f\n", _lrate);
-                printf("Dropout:       %f\n", _ldropout);
-                printf("Momentum:      %f\n", _lmomentum);
-                printf("RMSProp Alpha: %f\n", _lrmsalpha);
-
-                findBest(4);
-
-                loadWeights();
-                fv = hasFailed();
-                printf("Fail Variance: %u\n\n", fv);
-            }
-            exit(0);
-        }
-
         if(strcmp(argv[1], "best") == 0)
+            rndBest();
+        
+        if(strcmp(argv[1], "reset") == 0)
         {
-            newSRAND(); //kill any predictability in the random generator
-
-            _log = 2;
-            remove("weights.dat");
-            loadDataset("botmsg.txt");
-            findBest(4);
-
-            loadWeights();
-            const uint fv = hasFailed();
-            printf("Fail Variance: %u\n\n", fv);
-            
+            resetState(70);
+            printf("Weights and multi-process descriptor reset.\n");
             exit(0);
         }
 
+        if(strcmp(argv[1], "check") == 0)
+        {
+            FILE* f = fopen("gs.dat", "r");
+            while(f == NULL)
+            {
+                f = fopen("gs.dat", "r");
+                usleep(1000); //1ms
+            }
+            float fv = 0;
+            while(fread(&fv, 1, sizeof(float), f) != sizeof(float))
+                usleep(1000);
+            fclose(f);
+            printf("Current weights have a fail variance of %f.\n", fv);
+            exit(0);
+        }
+
+        ///////////////////////////
         loadWeights();
+        ///////////////////////////
 
         if(strcmp(argv[1], "ask") == 0)
             consoleAsk();
@@ -1256,20 +1448,17 @@ int main(int argc, char *argv[])
             timestamp();
             const time_t st = time(0);
             memset(&wtable, 0x00, TABLE_SIZE_MAX*WORD_SIZE);
+            resetState(70);
             loadTable("botdict.txt");
             loadDataset("botmsg.txt");
             clearFile("botmsg.txt");
-
-            _lrate      = uRandFloat(0.001, 0.03);
-            _ldropout   = uRandFloat(0.2, 0.3);
-            _lmomentum  = uRandFloat(0.1, 0.9);
-            _lrmsalpha  = uRandFloat(0.2, 0.99);
 
             float rmse = 0;
             uint fv = huntBestWeights(&rmse);
             while(rndGen("out.txt", 0.2) == 0)
                 fv = huntBestWeights(&rmse);
 
+            saveWeights();
             printf("Just generated a new dataset.\n");
             timestamp();
             const double time_taken = ((double)(time(0)-st)) / 60.0;
@@ -1282,6 +1471,7 @@ int main(int argc, char *argv[])
                 setlocale(LC_NUMERIC, "");
                 fprintf(f, "Trained with an RMSE of %f and Fail Variance of %u (higher is better) on;\n%sTime Taken: %.2f minutes\nDigest size: %'u\n", rmse, fv, asctime(localtime(&ltime)), time_taken, DATA_SIZE);
                 fprintf(f, "L-Rate: %f\n", _lrate);
+                fprintf(f, "Decay: %f\n", _lrate);
                 fprintf(f, "Dropout: %f\n", _ldropout);
                 fprintf(f, "Momentum: %f\n", _lmomentum);
                 fprintf(f, "Alpha: %f\n\n", _lrmsalpha);
