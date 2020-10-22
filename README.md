@@ -11,11 +11,14 @@ This version can randomly generate its learning parameters and then test to see 
 - ```./cfdgan retrain <optional file path>```
 <br>Train the network from the provided dataset.
 
-- ```./cfdgan best```
-<br>This will iterate each optimiser 6 times outputting the RMSE in-order to illustrate the optimiser which produces the best RMSE on the current dataset.
+- ```./cfdgan check```
+<br>Chech the fail variance of the current weights.
 
-- ```./cfdgan rndbest <optional 0-100 fail variance>```
-<br>This will run the best function with random learning parameters within an acceptable range. You want the fail variance to be high as the test is against random strings, if the generation was good, random strings should fail most of the time but not all of the time.
+- ```./cfdgan reset <optional fail variance lower limit>```
+<br>Reset the current weights. The optional parameter allows you to set the minimum viable fail variance value for a set of computed weights, all weights below this value are discarded.
+
+- ```./cfdgan best```
+<br>This will randomly iterate each parameter and recomputing the weights until the best solution is found. This function is multi-process safe.
 
 - ```./cfdgan "this is an example scentence"```
 <br>Get a percentage of likelyhood that the sampled dataset wrote the provided message.
