@@ -571,6 +571,7 @@ static inline float arctan(float x)
     return atan(x);
 }
 
+//https://stats.stackexchange.com/questions/60166/how-to-use-1-7159-tanh2-3-x-as-activation-function
 static inline float lecun_tanh(float x)
 {
     return 1.7159 * tanh(0.666666667 * x);
@@ -635,17 +636,30 @@ static inline float sigmoidDerivative(float x)
 
 static inline float tanhDerivative(float x)
 {
-    // if(x > 0)
-    //     return 1 - pow(x, 2);
-    // else
-    //     return 1 + pow(x, 2);
+    return 1 - pow(x, 2);
+}
 
+static inline float ftanhDerivative(float x)
+{
     return 1-(x*x);
 }
 
 static inline float lecun_tanhDerivative(float x)
 {
-    return 1.14393 * pow((1 / cosh(2*x/3)), 2);
+    //return 1.14393 * pow((1 / cosh(2*x/3)), 2);
+    return 1.14393 * pow((1 / cosh(x * 0.666666666)), 2);
+}
+
+static inline float flecun_tanhDerivative(float x)
+{
+    const float sx = x*0.582784545;
+    return 1-(sx*sx);
+}
+
+static inline float f2lecun_tanhDerivative(float x)
+{
+    const float sx = x*0.582784545;
+    return 1 - pow(sx, 2);
 }
 
 static inline float decay(const float x, const float lambda)
@@ -1029,8 +1043,10 @@ float trainDataset(const uint start, const uint end)
         }
 
         rmse = rmseDiscriminator(DATA_SIZE * DATA_TRAIN_PERCENT, DATA_SIZE);
-        if(_log == 1 || _log == 2)
+        if(_log == 1)
             printf("RMSE: %f :: %lus\n", rmse, time(0)-st);
+        if(_log == 2)
+            printf("RMSE:          %.2f :: %lus\n", rmse, time(0)-st);
     }
 
     // return rmse
@@ -1270,7 +1286,7 @@ void rndBest()
             
             const time_t st2 = time(0);
             fv = hasFailed(100);
-            printf("Fail Variance: %.2f :: %lus\n-----\n", fv, time(0)-st2);
+            printf("Fail Variance: %.2f :: %lus\n---------------\n", fv, time(0)-st2);
         }
 
         // this allows multiple processes to compete on the best weights
