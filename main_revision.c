@@ -32,7 +32,7 @@
 ///
 
 #define TABLE_SIZE_MAX 80000
-#define DIGEST_SIZE 16
+#define DIGEST_SIZE 8
 #define WORD_SIZE 256 //32
 #define MESSAGE_SIZE WORD_SIZE*DIGEST_SIZE
 
@@ -54,38 +54,38 @@
 // float       _lrmsalpha  = 0.2; //0.99
 // const float _lgain      = 1.0;
 
-// #define FAST_PREDICTABLE_MODE
-// #define DATA_TRAIN_PERCENT 0.7
-// #define DATA_SIZE 3045 //110927
-// #define OUTPUT_QUOTES 33333
-// #define FIRSTLAYER_SIZE 256
-// #define HIDDEN_SIZE 256
-// #define TRAINING_LOOPS 1
-// float       _lrate      = 0.03;
-// float       _ldecay     = 0.0005;
-// float       _ldropout   = 0.2;
-// uint        _lbatches   = 8;
-// uint        _loptimiser = 4;
-// float       _lmomentum  = 0.1;
-// float       _lrmsalpha  = 0.2; //0.99
-// const float _lgain      = 1.0;
-
-// this is not the vegetarian option
 #define FAST_PREDICTABLE_MODE
 #define DATA_TRAIN_PERCENT 0.7
 #define DATA_SIZE 3045 //110927
 #define OUTPUT_QUOTES 33333
-#define FIRSTLAYER_SIZE 512
-#define HIDDEN_SIZE 1024
+#define FIRSTLAYER_SIZE 256
+#define HIDDEN_SIZE 256
 #define TRAINING_LOOPS 1
-float       _lrate      = 0.01;
+float       _lrate      = 0.03;
 float       _ldecay     = 0.0005;
-float       _ldropout   = 0.3;
-uint        _lbatches   = 16;
-uint        _loptimiser = 1;
+float       _ldropout   = 0.2;
+uint        _lbatches   = 8;
+uint        _loptimiser = 4;
 float       _lmomentum  = 0.1;
-float       _lrmsalpha  = 0.2;
+float       _lrmsalpha  = 0.2; //0.99
 const float _lgain      = 1.0;
+
+// this is not the vegetarian option
+// #define FAST_PREDICTABLE_MODE
+// #define DATA_TRAIN_PERCENT 0.7
+// #define DATA_SIZE 3045 //110927
+// #define OUTPUT_QUOTES 33333
+// #define FIRSTLAYER_SIZE 512
+// #define HIDDEN_SIZE 1024
+// #define TRAINING_LOOPS 1
+// float       _lrate      = 0.01;
+// float       _ldecay     = 0.0005;
+// float       _ldropout   = 0.3;
+// uint        _lbatches   = 16;
+// uint        _loptimiser = 1;
+// float       _lmomentum  = 0.1;
+// float       _lrmsalpha  = 0.2;
+// const float _lgain      = 1.0;
 
 //
 
@@ -628,6 +628,26 @@ static inline float logit(float x)
     return log(x / (1 - x));
 }
 
+static inline float sigmoidDerivative(float x)
+{
+    return x * (1 - x);
+}
+
+static inline float tanhDerivative(float x)
+{
+    // if(x > 0)
+    //     return 1 - pow(x, 2);
+    // else
+    //     return 1 + pow(x, 2);
+
+    return 1-(x*x);
+}
+
+static inline float lecun_tanhDerivative(float x)
+{
+    return 1.14393 * pow((1 / cosh(2*x/3)), 2);
+}
+
 static inline float decay(const float x, const float lambda)
 {
     return (1-lambda)*x;
@@ -815,7 +835,7 @@ float doDiscriminator(const float* input, const float eo)
     float e2[HIDDEN_SIZE];
     float e3[HIDDEN_SIZE];
 
-    float e4 = _lgain * o4 * (1-o4) * error;
+    float e4 = _lgain * sigmoidDerivative(o4) * error;
 
     // layer 3 (output)
     float ler = 0;
@@ -824,7 +844,7 @@ float doDiscriminator(const float* input, const float eo)
     ler += d4.bias * e4;
     
     for(int i = 0; i < HIDDEN_SIZE; i++)
-        e3[i] = _lgain * o3[i] * (1-o3[i]) * ler;
+        e3[i] = _lgain * lecun_tanhDerivative(o3[i]) * ler;
 
     // layer 2
     ler = 0;
@@ -834,7 +854,7 @@ float doDiscriminator(const float* input, const float eo)
             ler += d3[i].data[j] * e3[i];
         ler += d3[i].bias * e3[i];
         
-        e2[i] = _lgain * o2[i] * (1-o2[i]) * ler;
+        e2[i] = _lgain * lecun_tanhDerivative(o2[i]) * ler;
     }
 
     // layer 1
@@ -850,7 +870,7 @@ float doDiscriminator(const float* input, const float eo)
         int k0 = 0;
         if(k != 0)
             k0 = 1;
-        k += _lgain * o1[i] * (1-o1[i]) * ler;
+        k += _lgain * lecun_tanhDerivative(o1[i]) * ler;
         if(k0 == 1)
         {
             e1[ki] = k / 2;
