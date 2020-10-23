@@ -1366,6 +1366,15 @@ void bestSetting(const float min)
         {
             newSRAND(); //kill any predictability in the random generator
 
+            _loptimiser = uRand(0, 4);
+            _lrate      = uRandFloat(0.001, 0.03);
+            //_ldecay     = uRandFloat(0.1, 0.0001);
+            _ldropout   = uRandFloat(0, 0.3);
+            if(_loptimiser == 1 || _loptimiser == 2)
+                _lmomentum  = uRandFloat(0.1, 0.9);
+            if(_loptimiser == 4)
+                _lrmsalpha  = uRandFloat(0.2, 0.99);
+
             resetPerceptrons();
             rmse = trainDataset(0, DATA_SIZE * DATA_TRAIN_PERCENT);
 
