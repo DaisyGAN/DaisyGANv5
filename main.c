@@ -1325,7 +1325,8 @@ void rndBest()
             if(_loptimiser == 1 || _loptimiser == 2)
                 fprintf(f, "Momentum: %f\n", _lmomentum);
             else if(_loptimiser == 4)
-                fprintf(f, "RMS Alpha: %f\n\n", _lrmsalpha);
+                fprintf(f, "RMS Alpha: %f\n", _lrmsalpha);
+            fprintf(f, "\n");
             fclose(f);
         }
 
