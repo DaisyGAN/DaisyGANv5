@@ -1319,6 +1319,9 @@ void rndBest()
         FILE* f = fopen("best_configs.txt", "a");
         if(f != NULL)
         {
+            while(flock(fileno(f), LOCK_EX) == -1)
+                usleep(1000);
+
             fprintf(f, "Fail Variance: %f\n", fv);
             fprintf(f, "RMSE: %f\n", rmse);
             fprintf(f, "Optimiser: %u\n", _loptimiser);
@@ -1329,6 +1332,8 @@ void rndBest()
             else if(_loptimiser == 4)
                 fprintf(f, "RMS Alpha: %f\n", _lrmsalpha);
             fprintf(f, "\n");
+
+            flock(fileno(f), LOCK_UN);
             fclose(f);
         }
 
@@ -1338,6 +1343,100 @@ void rndBest()
 
         if(fv >= 99.0 || min >= max)
             exit(0);
+    }
+    exit(0);
+}
+
+void bestSetting(const float min)
+{
+    _log = 2;
+    loadDataset("botmsg.txt");
+
+    float a0=0, a1=0, a2=0, a3=0, a4=0, a5=0, a6=0, a7=0;
+    uint count = 0, c1 = 0, c2 = 0;
+
+    // find a new lowest fv target
+    while(1)
+    {
+        float rmse = 0;
+        const time_t st = time(0);
+        float fv = 0;
+        const float max = 96.0;
+        while(fv < min || fv > max) //we want random string to fail at-least some percent of the time more than 50% preferably
+        {
+            newSRAND(); //kill any predictability in the random generator
+
+            resetPerceptrons();
+            rmse = trainDataset(0, DATA_SIZE * DATA_TRAIN_PERCENT);
+
+            const time_t st2 = time(0);
+            fv = hasFailed(100);
+            printf("Fail Variance: %.2f :: %lus\n---------------\n", fv, time(0)-st2);
+        }
+
+        a0 += fv;
+        a1 += rmse;
+        a2 += _loptimiser;
+        a3 += _lrate;
+        a4 += _ldropout;
+        count++;
+
+        if(_loptimiser == 1 || _loptimiser == 2)
+        {
+            a5 += _lmomentum;
+            c1++;
+        }
+        else if(_loptimiser == 4)
+        {
+            a6 += _lrmsalpha;
+            c2++;
+        }
+
+        // keep a log of the average
+        FILE* f = fopen("best_average.txt", "w");
+        if(f != NULL)
+        {
+            while(flock(fileno(f), LOCK_EX) == -1)
+                usleep(1000);
+
+            fprintf(f, "Fail Variance: %f\n", a0/count);
+            fprintf(f, "RMSE: %f\n", a1/count);
+            fprintf(f, "Optimiser: %f\n", a2/count);
+            fprintf(f, "L-Rate: %f\n", a3/count);
+            fprintf(f, "Dropout: %f\n", a4/count);
+            fprintf(f, "Momentum: %f\n", a5/c1);
+            fprintf(f, "RMS Alpha: %f\n", a6/c2);
+            fprintf(f, "\n");
+
+            flock(fileno(f), LOCK_UN);
+            fclose(f);
+        }
+
+        // keep a log of the best configurations
+        f = fopen("best_configs.txt", "a");
+        if(f != NULL)
+        {
+            while(flock(fileno(f), LOCK_EX) == -1)
+                usleep(1000);
+
+            fprintf(f, "Fail Variance: %f\n", fv);
+            fprintf(f, "RMSE: %f\n", rmse);
+            fprintf(f, "Optimiser: %u\n", _loptimiser);
+            fprintf(f, "L-Rate: %f\n", _lrate);
+            fprintf(f, "Dropout: %f\n", _ldropout);
+            if(_loptimiser == 1 || _loptimiser == 2)
+                fprintf(f, "Momentum: %f\n", _lmomentum);
+            else if(_loptimiser == 4)
+                fprintf(f, "RMS Alpha: %f\n", _lrmsalpha);
+            fprintf(f, "\n");
+
+            flock(fileno(f), LOCK_UN);
+            fclose(f);
+        }
+
+        // done    
+        const double time_taken = ((double)(time(0)-st)) / 60.0;
+        printf("\nbest_average.txt updated ; Time Taken: %.2f mins\n\n", time_taken);
     }
     exit(0);
 }
@@ -1383,6 +1482,9 @@ int main(int argc, char *argv[])
             exit(0);
         }
 
+        if(strcmp(argv[1], "bestset") == 0)
+            bestSetting(atoi(argv[2]));
+
         if(strcmp(argv[1], "gen") == 0)
         {
             _log = 1;
@@ -1411,6 +1513,9 @@ int main(int argc, char *argv[])
             saveWeights();
             exit(0);
         }
+
+        if(strcmp(argv[1], "bestset") == 0)
+            bestSetting(70);
 
         if(strcmp(argv[1], "best") == 0)
             rndBest();
