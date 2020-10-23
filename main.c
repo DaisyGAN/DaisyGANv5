@@ -1320,6 +1320,7 @@ void rndBest()
         if(f != NULL)
         {
             fprintf(f, "RMSE: %f\n", rmse);
+            fprintf(f, "Optimiser: %u\n", _loptimiser);
             fprintf(f, "L-Rate: %f\n", _lrate);
             fprintf(f, "Dropout: %f\n", _ldropout);
             if(_loptimiser == 1 || _loptimiser == 2)
