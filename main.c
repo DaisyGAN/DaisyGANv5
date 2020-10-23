@@ -1517,8 +1517,11 @@ int main(int argc, char *argv[])
                 fprintf(f, "L-Rate: %f\n", _lrate);
                 //fprintf(f, "Decay: %f\n", _ldecay);
                 fprintf(f, "Dropout: %f\n", _ldropout);
-                fprintf(f, "Momentum: %f\n", _lmomentum);
-                fprintf(f, "Alpha: %f\n\n", _lrmsalpha);
+                if(_loptimiser == 1 || _loptimiser == 2)
+                    fprintf(f, "Momentum: %f\n", _lmomentum);
+                else if(_loptimiser == 4)
+                    fprintf(f, "RMS Alpha: %f\n", _lrmsalpha);
+                fprintf(f, "Optimiser: %u\n\n", _loptimiser);
                 fprintf(f, "I is very smort and I hab big brain of %'u perceptronic neurons with %'u configurable weights.\n", FIRSTLAYER_SIZE + HIDDEN_SIZE + HIDDEN_SIZE + 1, FIRSTLAYER_SIZE*(DIGEST_SIZE+1) + HIDDEN_SIZE*(FIRSTLAYER_SIZE+1) + HIDDEN_SIZE*(HIDDEN_SIZE+1) + (HIDDEN_SIZE+1));
                 fclose(f);
             }
