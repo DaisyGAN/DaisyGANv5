@@ -7,7 +7,7 @@ I have added batching of the backprop which had a small improvement of ~2 second
 
 I have now allowed for a multi-process model to compete for the lowest fail variance when using `./cfdgan best` and `./cfdgan bestset`.
 
-It would seem that the bottlneck is the [RAM datarate](https://en.wikipedia.org/wiki/Double_data_rate) which for most consumer computers as of 2020 is around 19.2 GB/s. Interestingly the RTX NVIDIA cards, although having tensor processing units have a data rate of 14 GB/s. When I consider these options, I feel like there is not a lot of incentive for me to compute on a GPU currently as only using two CPU's clocked at lower than 3.7 GHz maximize my RAM's bandwidth. A comsumer could have maybe two graphics cards in his system, but one could also have multiple computers networked to increase this limit at an effective cost.
+It would seem that the bottlneck is the [RAM datarate](https://en.wikipedia.org/wiki/Double_data_rate) which for most consumer computers as of 2020 is around 19.2 GB/s. Interestingly the RTX NVIDIA cards, although having tensor processing units have a data rate of 14 GB/s. When I consider these options, I feel like there is not a lot of incentive for me to compute on a GPU currently as using just two CPU's clocked at lower than 3.7 GHz maximize my RAM's bandwidth. A comsumer could have maybe two graphics cards in his system, but one could also have multiple computers networked to increase this limit at an effective cost.
 
 ## Example Usage
 - ```./cfdgan retrain <optional file path>```
