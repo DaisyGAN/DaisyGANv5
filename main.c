@@ -75,8 +75,8 @@
 #define DATA_TRAIN_PERCENT 0.7
 #define DATA_SIZE 3045 //110927
 #define OUTPUT_QUOTES 33333
-#define FIRSTLAYER_SIZE 512
-#define HIDDEN_SIZE 1024
+#define FIRSTLAYER_SIZE 8192 //1022
+#define HIDDEN_SIZE 8192 //1022
 #define TRAINING_LOOPS 1
 float       _lrate      = 0.01;
 float       _ldecay     = 0.0005;
@@ -1416,7 +1416,15 @@ int main(int argc, char *argv[])
             while(fread(&fv, 1, sizeof(float), f) != sizeof(float))
                 usleep(1000);
             fclose(f);
+
             printf("Current weights have a fail variance of %f.\n", fv);
+
+            struct stat st;
+            stat("weights.dat", &st);
+            if(st.st_size > 0)
+                printf("%.0f kb / %.2f mb / %.2f gb\n", (double)st.st_size / 1000, ((((double)st.st_size) / 1000) / 1000), ((((double)st.st_size) / 1000) / 1000) / 1000);
+            else
+                printf("weights.dat is 0 bytes.\n");
             exit(0);
         }
 
