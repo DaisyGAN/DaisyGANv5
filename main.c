@@ -1404,8 +1404,10 @@ void bestSetting(const float min)
             fprintf(f, "Optimiser: %f\n", a2/count);
             fprintf(f, "L-Rate: %f\n", a3/count);
             fprintf(f, "Dropout: %f\n", a4/count);
-            fprintf(f, "Momentum: %f\n", a5/c1);
-            fprintf(f, "RMS Alpha: %f\n", a6/c2);
+            if(a5 != 0)
+                fprintf(f, "Momentum: %f\n", a5/c1);
+            if(a6 != 0)
+                fprintf(f, "RMS Alpha: %f\n", a6/c2);
             fprintf(f, "\n");
 
             flock(fileno(f), LOCK_UN);
