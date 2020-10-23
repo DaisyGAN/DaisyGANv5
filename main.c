@@ -1399,15 +1399,16 @@ void bestSetting(const float min)
             while(flock(fileno(f), LOCK_EX) == -1)
                 usleep(1000);
 
+            fprintf(f, "Iterations: %u\n", count);
             fprintf(f, "Fail Variance: %f\n", a0/count);
             fprintf(f, "RMSE: %f\n", a1/count);
             fprintf(f, "Optimiser: %f\n", a2/count);
             fprintf(f, "L-Rate: %f\n", a3/count);
             fprintf(f, "Dropout: %f\n", a4/count);
             if(a5 != 0)
-                fprintf(f, "Momentum: %f\n", a5/c1);
+                fprintf(f, "Momentum: %f / %u\n", a5/c1, c1);
             if(a6 != 0)
-                fprintf(f, "RMS Alpha: %f\n", a6/c2);
+                fprintf(f, "RMS Alpha: %f / %u\n", a6/c2, c2);
             fprintf(f, "\n");
 
             flock(fileno(f), LOCK_UN);
