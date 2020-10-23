@@ -1319,6 +1319,7 @@ void rndBest()
         FILE* f = fopen("best_configs.txt", "a");
         if(f != NULL)
         {
+            fprintf(f, "Fail Variance: %f\n", fv);
             fprintf(f, "RMSE: %f\n", rmse);
             fprintf(f, "Optimiser: %u\n", _loptimiser);
             fprintf(f, "L-Rate: %f\n", _lrate);
