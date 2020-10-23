@@ -3,9 +3,11 @@ Technically not a generative adversarial network anymore.
 
 This version can randomly generate its learning parameters and then test to see how successful the generated weights were by doing a variance test against random data; it goes by the rule that if random strings fail at-least 70% of the time, then the weights are successful.
 
-`main_revision.c` - this is a WIP edit where I attempt to improve performance over the original `main.c` so far I have added weight decay to little avail, batching of the backprop which had a small improvement of ~2 seconds per pass entire training pass. I had a try with some tanh approximations and I'ved changed the training method to use a cross-validation system, where 70% of the training data is used for training and the remaining 30% for testing the RMSE.
+I have added batching of the backprop which had a small improvement of ~2 seconds per pass entire training pass. I had a try with some tanh approximations and I'ved changed the training method to use a cross-validation system, where 70% of the training data is used for training and the remaining 30% for testing the RMSE.
 
-`[21:10:20]` - I have now allowed for a multi-process model to compete for the lowest fail variance when using `./cfdgan best`.
+I have now allowed for a multi-process model to compete for the lowest fail variance when using `./cfdgan best` and `./cfdgan bestset`.
+
+It would seem that the bottlneck is the [RAM datarate](https://en.wikipedia.org/wiki/Double_data_rate) which for most consumer computers as of 2020 is around 19.2 GB/s. Interestingly the RTX NVIDIA cards, although having tensor processing units have a data rate of 14 GB/s. When I consider these options, I feel like there is not a lot of incentive for me to compute on a GPU currently as only using two CPU's clocked at lower than 3.7 GHz maximize my RAM's bandwidth. A comsumer could have maybe two graphics cards in his system, but one could also have multiple computers networked to increase this limit at an effective cost.
 
 ## Example Usage
 - ```./cfdgan retrain <optional file path>```
