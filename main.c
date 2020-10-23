@@ -1421,8 +1421,9 @@ int main(int argc, char *argv[])
 
             struct stat st;
             stat("weights.dat", &st);
+            setlocale(LC_NUMERIC, "");
             if(st.st_size > 0)
-                printf("%.0f kb / %.2f mb / %.2f gb\n", (double)st.st_size / 1000, ((((double)st.st_size) / 1000) / 1000), ((((double)st.st_size) / 1000) / 1000) / 1000);
+                printf("%'.0f kb / %'.2f mb / %'.2f gb\n", (double)st.st_size / 1000, ((((double)st.st_size) / 1000) / 1000), ((((double)st.st_size) / 1000) / 1000) / 1000);
             else
                 printf("weights.dat is 0 bytes.\n");
             exit(0);
