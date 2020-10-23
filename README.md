@@ -20,7 +20,7 @@ This version can randomly generate its learning parameters and then test to see 
 - ```./cfdgan best```
 <br>Randomly iterate each parameter and recompute the weights until the best solution is found. This function is multi-process safe.
 
-- ```./cfdgan bestset```
+- ```./cfdgan bestset <optional fail variance lower limit>```
 <br>Randomly iterate each parameter and recompute the weights outputting the average best parameters to `best_average.txt`. This function is multi-process safe.
 
 - ```./cfdgan "this is an example scentence"```
