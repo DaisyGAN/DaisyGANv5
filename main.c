@@ -75,8 +75,8 @@
 #define DATA_TRAIN_PERCENT 0.7
 #define DATA_SIZE 3045 //110927
 #define OUTPUT_QUOTES 33333
-#define FIRSTLAYER_SIZE 8192 //1022
-#define HIDDEN_SIZE 8192 //1022
+#define FIRSTLAYER_SIZE 510 //1022
+#define HIDDEN_SIZE 1022 //1022
 #define TRAINING_LOOPS 1
 float       _lrate      = 0.01;
 float       _ldecay     = 0.0005;
@@ -1255,6 +1255,7 @@ void rndBest()
     // find a new lowest fv target
     while(1)
     {
+        float rmse = 0;
         const time_t st = time(0);
         float fv = 0;
         const float max = 96.0;
@@ -1282,7 +1283,7 @@ void rndBest()
             printf("~\n");
 
             resetPerceptrons();
-            trainDataset(0, DATA_SIZE * DATA_TRAIN_PERCENT);
+            rmse = trainDataset(0, DATA_SIZE * DATA_TRAIN_PERCENT);
             
             const time_t st2 = time(0);
             fv = hasFailed(100);
@@ -1313,6 +1314,20 @@ void rndBest()
             saveWeights();
         }
         fclose(f);
+
+        // keep a log of the best configurations
+        FILE* f = fopen("best_configs.txt", "a");
+        if(f != NULL)
+        {
+            fprintf(f, "RMSE: %f\n", rmse);
+            fprintf(f, "L-Rate: %f\n", _lrate);
+            fprintf(f, "Dropout: %f\n", _ldropout);
+            if(_loptimiser == 1 || _loptimiser == 2)
+                fprintf(f, "Momentum: %f\n", _lmomentum);
+            else if(_loptimiser == 4)
+                fprintf(f, "RMS Alpha: %f\n\n", _lrmsalpha);
+            fclose(f);
+        }
 
         // done    
         const double time_taken = ((double)(time(0)-st)) / 60.0;
@@ -1499,7 +1514,7 @@ int main(int argc, char *argv[])
                 setlocale(LC_NUMERIC, "");
                 fprintf(f, "Trained with an RMSE of %f and Fail Variance of %u (higher is better) on;\n%sTime Taken: %.2f minutes\nDigest size: %'u\n", rmse, fv, asctime(localtime(&ltime)), time_taken, DATA_SIZE);
                 fprintf(f, "L-Rate: %f\n", _lrate);
-                fprintf(f, "Decay: %f\n", _lrate);
+                //fprintf(f, "Decay: %f\n", _ldecay);
                 fprintf(f, "Dropout: %f\n", _ldropout);
                 fprintf(f, "Momentum: %f\n", _lmomentum);
                 fprintf(f, "Alpha: %f\n\n", _lrmsalpha);
