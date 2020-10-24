@@ -78,7 +78,7 @@
 #define FIRSTLAYER_SIZE 510 //1022
 #define HIDDEN_SIZE 1022 //1022
 #define TRAINING_LOOPS 1
-float       _lrate      = 0.016559;
+float       _lrate      = 0.016325;
 float       _ldecay     = 0.0005;
 float       _ldropout   = 0.130533;
 uint        _lbatches   = 16;
@@ -448,7 +448,7 @@ void timestamp()
 // create layer
 //*************************************
 
-void createPerceptron(ptron* p, const uint weights)
+void createPerceptron(ptron* p, const uint weights, const float d)
 {
     p->data = malloc(weights * sizeof(float));
     if(p->data == NULL)
@@ -466,48 +466,84 @@ void createPerceptron(ptron* p, const uint weights)
 
     p->weights = weights;
 
-    for(uint i = 0; i < weights; i++)
+    //const float d = 1/sqrt(p->weights);
+    for(uint i = 0; i < p->weights; i++)
     {
-        p->data[i] = qRandWeight(-1, 1);
+        p->data[i] = qRandWeight(-d, d); //qRandWeight(-1, 1);
         p->momentum[i] = 0;
     }
 
-    p->bias = qRandWeight(-1, 1);
+    p->bias = 0; //qRandWeight(-1, 1);
     p->bias_momentum = 0;
 }
 
-void resetPerceptron(ptron* p)
+void resetPerceptron(ptron* p, const float d)
 {
+    //const float d = 1/sqrt(p->weights);
     for(uint i = 0; i < p->weights; i++)
     {
-        p->data[i] = qRandWeight(-1, 1);
+        p->data[i] = qRandWeight(-d, d); //qRandWeight(-1, 1);
         p->momentum[i] = 0;
     }
 
-    p->bias = qRandWeight(-1, 1);
+    p->bias = 0; //qRandWeight(-1, 1);
     p->bias_momentum = 0;
 }
 
 void createPerceptrons()
 {
+    // const float l1d = 1/sqrt(DIGEST_SIZE);
+    // const float l2d = 1/sqrt(FIRSTLAYER_SIZE);
+    // const float l3d = 1/sqrt(HIDDEN_SIZE);
+    // const float l4d = 1/sqrt(HIDDEN_SIZE);
+
+    const float l1d = pow(DIGEST_SIZE, 0.5);
+    const float l2d = pow(FIRSTLAYER_SIZE, 0.5);
+    const float l3d = pow(HIDDEN_SIZE, 0.5);
+    const float l4d = pow(HIDDEN_SIZE, 0.5);
+
+    // const float l1d = 1;
+    // const float l2d = 1;
+    // const float l3d = 1;
+    // const float l4d = 1;
+    
+    //
+
     for(int i = 0; i < FIRSTLAYER_SIZE; i++)
-        createPerceptron(&d1[i], DIGEST_SIZE);
+        createPerceptron(&d1[i], DIGEST_SIZE, l1d);
     for(int i = 0; i < HIDDEN_SIZE; i++)
-        createPerceptron(&d2[i], FIRSTLAYER_SIZE);
+        createPerceptron(&d2[i], FIRSTLAYER_SIZE, l2d);
     for(int i = 0; i < HIDDEN_SIZE; i++)
-        createPerceptron(&d3[i], HIDDEN_SIZE);
-    createPerceptron(&d4, HIDDEN_SIZE);
+        createPerceptron(&d3[i], HIDDEN_SIZE, l3d);
+    createPerceptron(&d4, HIDDEN_SIZE, l4d);
 }
 
 void resetPerceptrons()
 {
+    // const float l1d = 1/sqrt(DIGEST_SIZE);
+    // const float l2d = 1/sqrt(FIRSTLAYER_SIZE);
+    // const float l3d = 1/sqrt(HIDDEN_SIZE);
+    // const float l4d = 1/sqrt(HIDDEN_SIZE);
+
+    const float l1d = pow(DIGEST_SIZE, 0.5);
+    const float l2d = pow(FIRSTLAYER_SIZE, 0.5);
+    const float l3d = pow(HIDDEN_SIZE, 0.5);
+    const float l4d = pow(HIDDEN_SIZE, 0.5);
+
+    // const float l1d = 1;
+    // const float l2d = 1;
+    // const float l3d = 1;
+    // const float l4d = 1;
+
+    //
+
     for(int i = 0; i < FIRSTLAYER_SIZE; i++)
-        resetPerceptron(&d1[i]);
+        resetPerceptron(&d1[i], l1d);
     for(int i = 0; i < HIDDEN_SIZE; i++)
-        resetPerceptron(&d2[i]);
+        resetPerceptron(&d2[i], l2d);
     for(int i = 0; i < HIDDEN_SIZE; i++)
-        resetPerceptron(&d3[i]);
-    resetPerceptron(&d4);
+        resetPerceptron(&d3[i], l3d);
+    resetPerceptron(&d4, l4d);
 }
 
 
@@ -1490,6 +1526,9 @@ int main(int argc, char *argv[])
             resetState(70);
             loadDataset(argv[2]);
             trainDataset(0, DATA_SIZE);
+            const time_t st2 = time(0);
+            const float fv = hasFailed(100);
+            printf("Fail Variance: %.2f :: %lus\n---------------\n", fv, time(0)-st2);
             saveWeights();
             exit(0);
         }
@@ -1522,6 +1561,9 @@ int main(int argc, char *argv[])
             resetState(70);
             loadDataset("botmsg.txt");
             trainDataset(0, DATA_SIZE);
+            const time_t st2 = time(0);
+            const float fv = hasFailed(100);
+            printf("Fail Variance: %.2f :: %lus\n---------------\n", fv, time(0)-st2);
             saveWeights();
             exit(0);
         }
