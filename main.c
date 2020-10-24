@@ -32,7 +32,7 @@
 ///
 
 #define TABLE_SIZE_MAX 80000
-#define DIGEST_SIZE 8
+#define DIGEST_SIZE 16
 #define WORD_SIZE 256 //32
 #define MESSAGE_SIZE WORD_SIZE*DIGEST_SIZE
 
@@ -492,22 +492,30 @@ void resetPerceptron(ptron* p, const float d)
 
 void createPerceptrons()
 {
-    // const float l1d = 1/sqrt(DIGEST_SIZE);
-    // const float l2d = 1/sqrt(FIRSTLAYER_SIZE);
-    // const float l3d = 1/sqrt(HIDDEN_SIZE);
-    // const float l4d = 1/sqrt(HIDDEN_SIZE);
+    // Xavier
+    // const float l1d = sqrt(6.0/(FIRSTLAYER_SIZE+HIDDEN_SIZE));
+    // const float l2d = sqrt(6.0/(HIDDEN_SIZE+HIDDEN_SIZE));
+    // const float l3d = sqrt(6.0/(HIDDEN_SIZE+HIDDEN_SIZE));
+    // const float l4d = sqrt(6.0/(HIDDEN_SIZE+1));
 
-    const float l1d = pow(DIGEST_SIZE, 0.5);
-    const float l2d = pow(FIRSTLAYER_SIZE, 0.5);
-    const float l3d = pow(HIDDEN_SIZE, 0.5);
-    const float l4d = pow(HIDDEN_SIZE, 0.5);
+    // LeCun
+    const float l1d = sqrt(3.0/DIGEST_SIZE);
+    const float l2d = sqrt(3.0/FIRSTLAYER_SIZE);
+    const float l3d = sqrt(3.0/HIDDEN_SIZE);
+    const float l4d = sqrt(3.0/HIDDEN_SIZE);
+
+    // What I thought was LeCun
+    // const float l1d = pow(DIGEST_SIZE, 0.5);
+    // const float l2d = pow(FIRSTLAYER_SIZE, 0.5);
+    // const float l3d = pow(HIDDEN_SIZE, 0.5);
+    // const float l4d = pow(HIDDEN_SIZE, 0.5);
 
     // const float l1d = 1;
     // const float l2d = 1;
     // const float l3d = 1;
     // const float l4d = 1;
     
-    //
+    //printf("%f %f %f %f \n", l1d, l2d, l3d, l4d);
 
     for(int i = 0; i < FIRSTLAYER_SIZE; i++)
         createPerceptron(&d1[i], DIGEST_SIZE, l1d);
@@ -520,22 +528,30 @@ void createPerceptrons()
 
 void resetPerceptrons()
 {
-    // const float l1d = 1/sqrt(DIGEST_SIZE);
-    // const float l2d = 1/sqrt(FIRSTLAYER_SIZE);
-    // const float l3d = 1/sqrt(HIDDEN_SIZE);
-    // const float l4d = 1/sqrt(HIDDEN_SIZE);
+    // Xavier
+    // const float l1d = sqrt(6.0/(FIRSTLAYER_SIZE+HIDDEN_SIZE));
+    // const float l2d = sqrt(6.0/(HIDDEN_SIZE+HIDDEN_SIZE));
+    // const float l3d = sqrt(6.0/(HIDDEN_SIZE+HIDDEN_SIZE));
+    // const float l4d = sqrt(6.0/(HIDDEN_SIZE+1));
 
-    const float l1d = pow(DIGEST_SIZE, 0.5);
-    const float l2d = pow(FIRSTLAYER_SIZE, 0.5);
-    const float l3d = pow(HIDDEN_SIZE, 0.5);
-    const float l4d = pow(HIDDEN_SIZE, 0.5);
+    // LeCun
+    const float l1d = sqrt(3.0/DIGEST_SIZE);
+    const float l2d = sqrt(3.0/FIRSTLAYER_SIZE);
+    const float l3d = sqrt(3.0/HIDDEN_SIZE);
+    const float l4d = sqrt(3.0/HIDDEN_SIZE);
+
+    // What I thought was LeCun
+    // const float l1d = pow(DIGEST_SIZE, 0.5);
+    // const float l2d = pow(FIRSTLAYER_SIZE, 0.5);
+    // const float l3d = pow(HIDDEN_SIZE, 0.5);
+    // const float l4d = pow(HIDDEN_SIZE, 0.5);
 
     // const float l1d = 1;
     // const float l2d = 1;
     // const float l3d = 1;
     // const float l4d = 1;
 
-    //
+    //printf("%f %f %f %f \n", l1d, l2d, l3d, l4d);
 
     for(int i = 0; i < FIRSTLAYER_SIZE; i++)
         resetPerceptron(&d1[i], l1d);
