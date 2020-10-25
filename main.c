@@ -50,7 +50,7 @@
 // float       _ldecay     = 0.0005;
 // float       _ldropout   = 0.130533;
 // uint        _lbatches   = 1;
-// uint        _loptimiser = 4;
+// uint        _loptimiser = 1;
 // float       _lmomentum  = 0.530182;
 // float       _lrmsalpha  = 0.578107;
 // const float _lgain      = 1.0;
@@ -67,7 +67,7 @@
 // float       _ldecay     = 0.0005;
 // float       _ldropout   = 0.130533;
 // uint        _lbatches   = 8;
-// uint        _loptimiser = 4;
+// uint        _loptimiser = 1;
 // float       _lmomentum  = 0.530182;
 // float       _lrmsalpha  = 0.578107;
 // const float _lgain      = 1.0;
@@ -85,7 +85,7 @@ float       _lrate      = 0.016325;
 float       _ldecay     = 0.0005;
 float       _ldropout   = 0.130533;
 uint        _lbatches   = 16;
-uint        _loptimiser = 2;
+uint        _loptimiser = 1;
 float       _lmomentum  = 0.530182;
 float       _lrmsalpha  = 0.578107;
 const float _lgain      = 1.0;
@@ -962,7 +962,7 @@ float doDiscriminator(const float* input, const float eo)
         k += _lgain * lecun_tanhDerivative(o1[i]) * ler;
         if(k0 == 1)
         {
-            e1[ki] = k / 2;
+            e1[ki] = k / 2; // i keep forgetting but this hardcoded parameter means the first layer always has to be half the size of the hidden layer
             ki++;
         }
     }
