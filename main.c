@@ -1497,7 +1497,7 @@ void bestSetting(const float min)
                 fprintf(f, "RMS Alpha: %f / %u\n", a6/c2, c2);
             fprintf(f, "Optimiser: %f\n", a2/count);
             for(uint i = 0; i < 5; i++)
-                fprintf(f, "Optimiser-%u: %u\n", i, oc[i]);
+                fprintf(f, "\nOptimiser-%u: %u\n", i, oc[i]);
             fprintf(f, "\n");
 
             flock(fileno(f), LOCK_UN);
