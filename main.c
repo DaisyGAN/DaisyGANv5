@@ -7,7 +7,7 @@
 
     Technically not a generative adversarial network anymore.
 
-    rndBest() & bestSettin() allows a multi-process model
+    rndBest() & bestSetting() allows a multi-process model
 */
 
 #pragma GCC diagnostic ignored "-Wunused-result"
