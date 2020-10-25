@@ -80,7 +80,7 @@
 #define FIRSTLAYER_SIZE 512
 #define HIDDEN_SIZE 1024
 #define TRAINING_LOOPS 1
-uint        _linit      = 1;
+uint        _linit      = 3;
 float       _lrate      = 0.016325;
 float       _ldecay     = 0.0005;
 float       _ldropout   = 0.130533;
