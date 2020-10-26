@@ -7,7 +7,7 @@
 
     Technically not a generative adversarial network anymore.
 
-    rndBest() & bestSettin() allows a multi-process model
+    rndBest() & bestSetting() allows a multi-process model
 */
 
 #pragma GCC diagnostic ignored "-Wunused-result"
@@ -1508,9 +1508,9 @@ void bestSetting(const float min)
                 fprintf(f, "Momentum: %f / %u\n", a5/c1, c1);
             if(a6 != 0)
                 fprintf(f, "RMS Alpha: %f / %u\n", a6/c2, c2);
-            fprintf(f, "Optimiser: %f\n", a2/count);
+            fprintf(f, "Optimiser: %f\n\n", a2/count);
             for(uint i = 0; i < 5; i++)
-                fprintf(f, "\nOptimiser-%u: %u\n", i, oc[i]);
+                fprintf(f, "Optimiser-%u: %u\n", i, oc[i]);
             fprintf(f, "\n");
 
             flock(fileno(f), LOCK_UN);
