@@ -7,7 +7,7 @@
 
     Technically not a generative adversarial network anymore.
 
-    rndBest() & bestSetting() allows a multi-process model
+    rndBest() & bestSettin() allows a multi-process model
 */
 
 #pragma GCC diagnostic ignored "-Wunused-result"
@@ -864,20 +864,20 @@ float doDiscriminator(const float* input, const float eo)
     // layer one, inputs (fc)
     float o1f[FIRSTLAYER_SIZE];
     for(int i = 0; i < FIRSTLAYER_SIZE; i++)
-        o1f[i] = arctan(doPerceptron(input, &d1[i]));
+        o1f[i] = lecun_tanh(doPerceptron(input, &d1[i]));
 
     // layer two, hidden (fc expansion)
     float o2f[HIDDEN_SIZE];
     for(int i = 0; i < HIDDEN_SIZE; i++)
-        o2f[i] = arctan(doPerceptron(&o1f[0], &d2[i]));
+        o2f[i] = lecun_tanh(doPerceptron(&o1f[0], &d2[i]));
 
     // layer three, hidden (fc)
     float o3f[HIDDEN_SIZE];
     for(int i = 0; i < HIDDEN_SIZE; i++)
-        o3f[i] = arctan(doPerceptron(&o2f[0], &d3[i]));
+        o3f[i] = lecun_tanh(doPerceptron(&o2f[0], &d3[i]));
 
     // layer four, output (fc compression)
-    const float output = sigmoid(arctan(doPerceptron(&o3f[0], &d4)));
+    const float output = sigmoid(lecun_tanh(doPerceptron(&o3f[0], &d4)));
 
     // if it's just forward pass, return result.
     if(eo == NO_LEARN)
@@ -937,7 +937,7 @@ float doDiscriminator(const float* input, const float eo)
     float e2[HIDDEN_SIZE];
     float e3[HIDDEN_SIZE];
 
-    float e4 = _lgain * arctanDerivative(o4) * error;
+    float e4 = _lgain * sigmoidDerivative(o4) * error;
 
     // layer 3 (output)
     float ler = 0;
@@ -946,7 +946,7 @@ float doDiscriminator(const float* input, const float eo)
     ler += d4.bias * e4;
     
     for(int i = 0; i < HIDDEN_SIZE; i++)
-        e3[i] = _lgain * arctanDerivative(o3[i]) * ler;
+        e3[i] = _lgain * lecun_tanhDerivative(o3[i]) * ler;
 
     // layer 2
     for(int i = 0; i < HIDDEN_SIZE; i++)
@@ -956,7 +956,7 @@ float doDiscriminator(const float* input, const float eo)
             ler += d3[i].data[j] * e3[i];
         ler += d3[i].bias * e3[i];
         
-        e2[i] = _lgain * arctanDerivative(o2[i]) * ler;
+        e2[i] = _lgain * lecun_tanhDerivative(o2[i]) * ler;
     }
 
     // layer 1
@@ -972,7 +972,7 @@ float doDiscriminator(const float* input, const float eo)
         int k0 = 0;
         if(k != 0)
             k0 = 1;
-        k += _lgain * arctanDerivative(o1[i]) * ler;
+        k += _lgain * lecun_tanhDerivative(o1[i]) * ler;
         if(k0 == 1)
         {
             e1[ki] = k / 2; // i keep forgetting but this hardcoded parameter means the first layer always has to be half the size of the hidden layer
@@ -1508,9 +1508,9 @@ void bestSetting(const float min)
                 fprintf(f, "Momentum: %f / %u\n", a5/c1, c1);
             if(a6 != 0)
                 fprintf(f, "RMS Alpha: %f / %u\n", a6/c2, c2);
-            fprintf(f, "Optimiser: %f\n\n", a2/count);
+            fprintf(f, "Optimiser: %f\n", a2/count);
             for(uint i = 0; i < 5; i++)
-                fprintf(f, "Optimiser-%u: %u\n", i, oc[i]);
+                fprintf(f, "\nOptimiser-%u: %u\n", i, oc[i]);
             fprintf(f, "\n");
 
             flock(fileno(f), LOCK_UN);
